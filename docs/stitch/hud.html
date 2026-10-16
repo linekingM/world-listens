@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>如果世界听你的 - Spatial World Canvas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&amp;family=Noto+Serif:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed-dim": "#ffb95f",
+            "on-secondary-container": "#5b3800",
+            "on-error": "#690005",
+            "on-tertiary-fixed-variant": "#4f4800",
+            "outline": "#97917a",
+            "on-primary-fixed-variant": "#524600",
+            "tertiary-container": "#f0e27e",
+            "primary": "#fffcff",
+            "error-container": "#93000a",
+            "inverse-on-surface": "#283044",
+            "tertiary-fixed-dim": "#d5c867",
+            "on-tertiary-fixed": "#201c00",
+            "on-tertiary": "#363100",
+            "surface-dim": "#0b1326",
+            "on-primary-container": "#726300",
+            "tertiary": "#fffbff",
+            "surface-container": "#171f33",
+            "tertiary-fixed": "#f2e580",
+            "outline-variant": "#4b4734",
+            "secondary": "#ffb95f",
+            "surface-container-lowest": "#060e20",
+            "on-secondary": "#472a00",
+            "on-error-container": "#ffdad6",
+            "surface-container-highest": "#2d3449",
+            "surface": "#0b1326",
+            "inverse-primary": "#6d5e00",
+            "surface-variant": "#2d3449",
+            "error": "#ffb4ab",
+            "on-tertiary-container": "#6e6407",
+            "primary-fixed-dim": "#e2c62d",
+            "on-background": "#dae2fd",
+            "secondary-fixed": "#ffddb8",
+            "on-surface": "#dae2fd",
+            "background": "#0b1326",
+            "on-surface-variant": "#cec6ad",
+            "on-secondary-fixed-variant": "#653e00",
+            "surface-tint": "#e2c62d",
+            "surface-container-high": "#222a3d",
+            "on-primary": "#393000",
+            "on-secondary-fixed": "#2a1700",
+            "inverse-surface": "#dae2fd",
+            "secondary-container": "#ee9800",
+            "on-primary-fixed": "#211b00",
+            "primary-fixed": "#ffe24c",
+            "surface-container-low": "#131b2e",
+            "primary-container": "#fde047",
+            "surface-bright": "#31394d"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-md": "0.875rem",
+            "space-sm": "0.5rem",
+            "gutter-mobile": "0.75rem",
+            "margin-mobile": "1.25rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1.5rem",
+            "margin": "3rem"
+          },
+          "fontFamily": {
+            "display-lg": ["Noto Serif"],
+            "headline-lg": ["Noto Serif"],
+            "body-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "display-lg-mobile": ["Noto Serif"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Noto Serif"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-md": ["13px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "300" }],
+            "label-sm": ["9px", { "lineHeight": "12px", "letterSpacing": "0.18em", "fontWeight": "600" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-lg": ["15px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "300" }],
+            "headline-md": ["22px", { "lineHeight": "30px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "label-md": ["11px", { "lineHeight": "16px", "letterSpacing": "0.12em", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+    }
+    .specular-rim {
+      box-shadow: inset 0 1px 1px 0 rgba(254, 240, 138, 0.35);
+    }
+    .lens-glow {
+      box-shadow: 0 0 24px rgba(253, 224, 71, 0.15), 0 12px 36px rgba(0, 0, 0, 0.25);
+    }
+    /* Subtle breathing particle glow on sun */
+    @keyframes pulse-amber {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.8)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(253, 224, 71, 1)); }
+    }
+    .sun-pulse {
+      animation: pulse-amber 3.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased overflow-hidden select-none w-screen h-screen relative font-body-md text-body-md">
+<!-- Full-Bleed Spatial Background -->
+<img alt="Floating island paradise canvas" class="fixed inset-0 w-full h-full object-cover -z-10 pointer-events-none scale-[1.01] transition-transform duration-1000 ease-out" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDe5Nsi7mczzrq4Jd_XKO9bNq03R76B7XefvyarDLPgBE0273wUYy5cuP0iSTeAgLw4DjfFwA2JmT_7O0GWeJF5sqtlWNg5KaYU0p4eINrtG6rbDejQZULvCFQ4m3vAxKHh3L5WrZ8WqTsygevXmxjVajfxI2rTGjKbTfFPd_kxIqWlDMU4pPVLEnMxSEjay-c_NMg37xsay--1_3eONKcY8e2i1liprz6kjkbhzO3WeZwGIrfq3SUzgUupbXjIU4AKj_i2R4x5NJU"/>
+<!-- Subtle Atmospheric Vignette overlay to anchor HUD glass optics -->
+<div class="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-t from-surface-dim/40 via-transparent to-surface-dim/30"></div>
+<!-- SHARED COMPONENT: TopNavBar -->
+<header class="fixed top-6 left-0 right-0 z-50 flex justify-between items-center px-8 w-full pointer-events-auto">
+<!-- Top-Left Brand Anchor -->
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<h1 class="font-headline-md text-headline-md tracking-normal text-primary drop-shadow-[0_2px_12px_rgba(255,252,255,0.3)]">
+          如果世界听你的
+        </h1>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant/80 mt-0.5">
+          YOUR IMAGINATION, OUR WORLD
+        </span>
+</div>
+<!-- Spatial Mode Indicator Chip -->
+<div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-surface/10 backdrop-blur-md border border-outline-variant/30 text-on-surface-variant specular-rim">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container shadow-[0_0_8px_#FDE047]"></span>
+<span class="font-label-sm text-label-sm tracking-wider uppercase text-on-surface">IMMERSIVE SPHERE 1.0</span>
+</div>
+</div>
+<!-- Top-Right Actions Capsule (Shared Component Trailing Actions) -->
+<nav class="flex items-center gap-3 bg-surface/10 dark:bg-surface-container-lowest/20 backdrop-blur-md border border-outline-variant/30 rounded-full py-1.5 px-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.18)] specular-rim">
+<!-- Save Action -->
+<button class="flex items-center gap-2 px-3 py-1 rounded-full text-on-surface-variant hover:border-primary-fixed/50 hover:bg-surface-bright/20 hover:text-primary transition-all duration-300 active:scale-95 group">
+<span class="material-symbols-outlined text-[17px] text-primary-fixed transition-transform group-hover:scale-110">bookmark</span>
+<span class="font-label-md text-label-md">Save</span>
+</button>
+<!-- Micro Divider -->
+<div class="w-px h-3.5 bg-outline-variant/40"></div>
+<!-- Share Action -->
+<button class="flex items-center gap-2 px-3 py-1 rounded-full text-on-surface-variant hover:border-primary-fixed/50 hover:bg-surface-bright/20 hover:text-primary transition-all duration-300 active:scale-95 group">
+<span class="material-symbols-outlined text-[17px] text-primary-fixed transition-transform group-hover:scale-110">ios_share</span>
+<span class="font-label-md text-label-md">Share</span>
+</button>
+</nav>
+</header>
+<!-- SHARED COMPONENT: SideNavBar (Floating Left Tool Rail) -->
+<aside class="fixed bottom-8 left-8 z-40 flex flex-col items-center pointer-events-auto">
+<div class="bg-surface/10 dark:bg-surface-container-lowest/30 backdrop-blur-xl border border-outline-variant/40 rounded-full p-2 flex flex-col gap-3 shadow-[0_12px_40px_0_rgba(0,0,0,0.35)] specular-rim">
+<!-- Weather Tab (Active State determined by primary environment realm theme) -->
+<button class="group relative flex items-center justify-center w-11 h-11 text-primary-container dark:text-primary-fixed bg-surface-bright/30 rounded-full shadow-[0_0_12px_rgba(253,224,71,0.35)] active:scale-90 transition-transform duration-150" title="Weather">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">routine</span>
+<!-- Floating HUD Tooltip -->
+<span class="absolute left-14 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 text-on-surface font-label-sm text-label-sm tracking-wider uppercase opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg">
+          Weather
+        </span>
+</button>
+<!-- Add Object Tab -->
+<button class="group relative flex items-center justify-center w-11 h-11 text-on-surface-variant/80 dark:text-on-surface-variant/80 hover:text-primary hover:bg-surface-bright/25 rounded-full active:scale-90 transition-all duration-200" title="Add Object">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<!-- Floating HUD Tooltip -->
+<span class="absolute left-14 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 text-on-surface font-label-sm text-label-sm tracking-wider uppercase opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg">
+          Add Object
+        </span>
+</button>
+<!-- Gravity Tab -->
+<button class="group relative flex items-center justify-center w-11 h-11 text-on-surface-variant/80 dark:text-on-surface-variant/80 hover:text-primary hover:bg-surface-bright/25 rounded-full active:scale-90 transition-all duration-200" title="Gravity">
+<span class="material-symbols-outlined text-[20px]">public</span>
+<!-- Floating HUD Tooltip -->
+<span class="absolute left-14 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 text-on-surface font-label-sm text-label-sm tracking-wider uppercase opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg">
+          Gravity
+        </span>
+</button>
+<!-- Divider -->
+<div class="w-6 h-px bg-outline-variant/30 my-0.5"></div>
+<!-- Reset View Tab -->
+<button class="group relative flex items-center justify-center w-11 h-11 text-on-surface-variant/80 dark:text-on-surface-variant/80 hover:text-primary hover:bg-surface-bright/25 rounded-full active:scale-90 transition-all duration-200" title="Reset View">
+<span class="material-symbols-outlined text-[20px]">center_focus_strong</span>
+<!-- Floating HUD Tooltip -->
+<span class="absolute left-14 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 text-on-surface font-label-sm text-label-sm tracking-wider uppercase opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg">
+          Reset View
+        </span>
+</button>
+</div>
+</aside>
+<!-- Bottom-Center Time-of-Day Arc Scrub Control Dock -->
+<section class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-auto">
+<div class="bg-surface/10 dark:bg-surface-container-lowest/30 backdrop-blur-2xl border border-white/20 rounded-3xl px-8 py-3.5 shadow-2xl flex flex-col items-center gap-2.5 specular-rim min-w-[340px] lens-glow transition-all duration-300">
+<!-- Top Readout Row: Phase Pill & Big Serene Time Display -->
+<div class="flex items-center justify-between w-full px-2">
+<div class="flex items-center gap-2">
+<!-- Ambient Dawn Pip Indicator -->
+<div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-bright/30 border border-primary-fixed/30 text-primary-fixed">
+<span class="material-symbols-outlined text-[13px] text-primary-container">light_mode</span>
+<span class="font-label-sm text-label-sm font-semibold tracking-wider uppercase">清晨 · DAWN</span>
+</div>
+</div>
+<!-- Digital Elegance Time -->
+<div class="flex items-baseline gap-1.5">
+<span class="font-display-lg text-[28px] leading-none font-light tracking-tight text-primary drop-shadow-[0_2px_8px_rgba(255,252,255,0.25)]">
+            08:00
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">AM</span>
+</div>
+</div>
+<!-- Celestial Arc Scrub Track Canvas/SVG -->
+<div class="relative w-full h-11 flex items-center justify-center pt-1">
+<!-- SVG Curved Arc Path with Gradient Sunlight Track -->
+<svg class="w-full h-11 overflow-visible" fill="none" viewbox="0 0 280 34">
+<defs>
+<lineargradient id="arcGlow" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#ffffff" stop-opacity="0.1"></stop>
+<stop offset="25%" stop-color="#FDE047" stop-opacity="0.9"></stop>
+<stop offset="70%" stop-color="#ffb95f" stop-opacity="0.5"></stop>
+<stop offset="100%" stop-color="#ffffff" stop-opacity="0.1"></stop>
+</lineargradient>
+<filter height="140%" id="softGlint" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="1.5"></fegaussianblur>
+<fecomposite in="SourceGraphic" in2="blur" operator="over"></fecomposite>
+</filter>
+</defs>
+<!-- Dotted background path -->
+<path d="M 10 26 Q 140 -2 270 26" fill="none" stroke="rgba(255, 255, 255, 0.15)" stroke-dasharray="3 3" stroke-width="1.5"></path>
+<!-- Illuminated active sun arc path -->
+<path d="M 10 26 Q 70 12 85 8" fill="none" filter="url(#softGlint)" stroke="url(#arcGlow)" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Hour Marks (Faint Dots) -->
+<circle cx="10" cy="26" fill="rgba(255, 255, 255, 0.35)" r="1.5"></circle>
+<circle cx="78" cy="10" fill="rgba(255, 255, 255, 0.4)" r="1.5"></circle>
+<circle cx="140" cy="4" fill="rgba(255, 255, 255, 0.5)" r="2"></circle>
+<circle cx="202" cy="10" fill="rgba(255, 255, 255, 0.4)" r="1.5"></circle>
+<circle cx="270" cy="26" fill="rgba(255, 255, 255, 0.35)" r="1.5"></circle>
+</svg>
+<!-- Interactive Glowing Sun Bead (Handle) positioned at 08:00 AM coordinate -->
+<div class="absolute left-[78px] top-[7px] -translate-x-1/2 -translate-y-1/2 group cursor-grab active:cursor-grabbing pointer-events-auto" title="Drag to sculpt celestial illumination">
+<div class="relative flex items-center justify-center">
+<!-- Corona Halo -->
+<div class="absolute w-8 h-8 rounded-full bg-primary-container/20 blur-md pointer-events-none"></div>
+<!-- Specular Bead -->
+<div class="w-4 h-4 rounded-full bg-primary-container sun-pulse ring-2 ring-primary/80 shadow-[0_0_12px_#FDE047] flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Ticks and Epoch Labels -->
+<div class="flex justify-between items-center w-full px-1.5 -mt-1 text-on-surface-variant font-label-sm text-[8px] tracking-[0.2em] uppercase opacity-75">
+<span>06:00 黎明</span>
+<span class="pl-2">12:00 正午</span>
+<span>18:00 黄昏</span>
+<span>24:00 子夜</span>
+</div>
+</div>
+</section>
+<!-- Bottom-Right Minimalist Environmental Telemetry (Spatial Compass & Wind Readout) -->
+<aside class="fixed bottom-8 right-8 z-40 hidden md:flex items-center gap-3 pointer-events-auto">
+<!-- Spatial Reticle Compass Dock -->
+<div class="bg-surface/10 dark:bg-surface-container-lowest/30 backdrop-blur-xl border border-outline-variant/40 rounded-full px-4 py-2.5 flex items-center gap-3.5 shadow-xl specular-rim">
+<!-- Miniature Compass Glyphic Dial -->
+<div class="relative w-7 h-7 rounded-full border border-outline-variant/60 flex items-center justify-center">
+<span class="absolute -top-1 font-label-sm text-[7px] text-primary-container font-bold">N</span>
+<div class="w-3.5 h-0.5 bg-gradient-to-r from-primary-container to-transparent rounded-full rotate-45 transform origin-center"></div>
+<div class="w-1 h-1 rounded-full bg-primary-container shadow-[0_0_4px_#FDE047]"></div>
+</div>
+<!-- Spatial Vector Coordinates -->
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-[9px] font-medium tracking-wider text-on-surface uppercase">AER-310° / EL 1420M</span>
+<span class="font-label-sm text-[8px] tracking-widest text-on-surface-variant uppercase">WIND 3.2 M/S · MIST 14%</span>
+</div>
+<!-- Quick Toggle Micro Button -->
+<button class="w-6 h-6 rounded-full bg-surface-bright/20 hover:bg-surface-bright/40 text-on-surface-variant hover:text-primary transition-all duration-200 flex items-center justify-center active:scale-95" title="Calibrate Telemetry">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+</button>
+</div>
+</aside>
+<!-- Interactive Drag & Spatial Feel Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Micro-interactions for buttons
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(btn => {
+        btn.addEventListener('mouseenter', () => {
+          btn.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        });
+      });
+    });
+  </script>
+</body></html>
