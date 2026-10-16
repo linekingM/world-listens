@@ -234,10 +234,12 @@ await test('drag a cloud, then turn a cloud into an island', async () => {
 
 await test('gravity: weightless lifts objects, chip shows, restore lands them', async () => {
   await page.click('[data-testid=rail-gravity]')
+  const T0 = Date.now(); const lap = (m) => console.log(`   [gravity] ${m} @${((Date.now() - T0) / 1000).toFixed(1)}s`)
   await page.click('[data-gravity="0"]')
   assert((await st(page, (s) => s.gravity)) === 0, 'gravity 0')
   assert(!(await page.$('[data-testid=gravity-chip]')), 'chip hidden while the gravity panel is open')
   await page.waitForFunction(() => { const rock = window.__world.getState().objects.find((o) => o.type === 'rock'); const s = window.__sims.get(rock.id); return s && s.off.y > 3 }, null, { timeout: 120000 })
+  lap('lifted')
   await page.click('[data-testid=rail-gravity]')
   assert(await page.$('[data-testid=gravity-chip]'), 'gravity chip after closing panel')
   await frames(page, 10)
@@ -247,11 +249,13 @@ await test('gravity: weightless lifts objects, chip shows, restore lands them', 
   await page.click('[data-testid=orbit-toggle]', { force: true }).catch(async () => page.click('.toggle'))
   assert(await st(page, (s) => s.orbit), 'orbit on')
   await page.waitForFunction(() => { const i = window.__world.getState().objects.find((o) => o.type === 'island'); const s = window.__sims.get(i.id); return Math.abs(s.orbit) > 0.05 }, null, { timeout: 120000 })
+  lap('orbiting')
   await page.click('[data-testid=restore-rules]')
   const r = await st(page, (s) => ({ g: s.gravity, o: s.orbit }))
   assert(r.g === 1 && !r.o, 'rules restored')
   assert(!(await page.$('[data-testid=gravity-chip]')), 'chip hidden after restore')
   await page.waitForFunction(() => [...window.__sims.values()].every((s) => Math.abs(s.off.y) < 0.3 && Math.abs(s.off.x) < 0.5), null, { timeout: 180000 })
+  lap('landed')
   await page.click('[data-testid=rail-gravity]')
 })
 

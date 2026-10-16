@@ -2,111 +2,111 @@
   {
     "name": "loads without errors, no style switcher, HUD present",
     "ok": true,
-    "s": 0.091
+    "s": 0.076
   },
   {
     "name": "HUD covers < 12% of the screen (desktop)",
     "ok": true,
-    "s": 0.016
+    "s": 0.005
   },
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 38.968
+    "s": 30.447
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 56.237
+    "s": 42.648
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 59.382
+    "s": 22.246
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 5.596
+    "s": 4.752
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 25.831
+    "s": 22.369
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 2.519
+    "s": 2.404
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 6.787
+    "s": 5.754
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 17.778
+    "s": 15.356
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 22.579
+    "s": 22.813
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
     "ok": true,
-    "s": 418.712
+    "s": 441.094
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 47.257
+    "s": 38.038
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 12.404
+    "s": 9.808
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 5.176
+    "s": 4.249
   },
   {
     "name": "share link round-trips the whole world",
     "ok": true,
-    "s": 107.205
+    "s": 92.872
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
     "ok": true,
-    "s": 18.771
+    "s": 15.539
   },
   {
     "name": "autosave: reload restores the edited world",
     "ok": true,
-    "s": 9.201
+    "s": 10.097
   },
   {
     "name": "reset world (two-step confirm)",
     "ok": true,
-    "s": 4.337
+    "s": 4.322
   },
   {
     "name": "no runtime errors during the whole desktop session",
-    "ok": false,
-    "err": "THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false\n\nMaterial Name: \nMaterial Type: MeshBasicMaterial\n\nProgram Info Log: Vertex shader is not compiled.\nVERTEX\n\nERROR: 0:498: 'objectNormal' : undeclared identifier\nWARNING: 0:498: 'normalize' : operation result is undefined for the values passe"
+    "ok": true,
+    "s": 0
   },
   {
     "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
-    "ok": false,
-    "err": "THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false\n\nMaterial Name: \nMaterial Type: MeshBasicMaterial\n\nProgram Info Log: Vertex shader is not compiled.\nVERTEX\n\nERROR: 0:498: 'objectNormal' : undeclared identifier\nWARNING: 0:498: 'normalize' : operation result is undefined for the values passe"
+    "ok": true,
+    "s": 41.028
   },
   {
     "name": "first-visit onboarding hint shows once and dismisses",
     "ok": true,
-    "s": 114.34
+    "s": 16.312
   }
 ]
