@@ -1,6 +1,6 @@
 import { addFlagstones } from './materialFx'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { AssetTrees } from './AssetTrees'
+import { ASSETS_ON, AssetTrees, PathFlora } from './AssetTrees'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useEnv, useStyleDef } from './EnvContext'
@@ -112,7 +112,7 @@ export function WorldContent() {
   const allSpots = useMemo(() => treeSpots(), [])
   // near/mid trees use the hand-modelled CC0 assets; distant fogged groves keep the cheap procedural ones
   // on by default (won the side-by-side); ?assets=0 falls back to all-procedural trees
-  const useAssets = typeof location === 'undefined' || new URLSearchParams(location.search).get('assets') !== '0'
+  const useAssets = ASSETS_ON
   // near = within ~65 m of the home camera and by the avenue; beyond that the cheap procedural trees take over (LOD by distance)
   const isNear = (s: { x: number; z: number }) => useAssets && Math.hypot(s.x - 8, s.z - 38) < 95 && s.z < 30 && Math.abs(s.x - roadX(s.z)) < 40
   // quality > quantity: keep ~55% of the near spots for the detailed asset trees, drop the rest entirely
@@ -161,6 +161,7 @@ export function WorldContent() {
       <mesh geometry={mountains} material={mats.mountain} />
       {trees.map((t, i) => <TreeInstances key={i} geometry={t.geo} material={mats.foliage} spots={t.spots} />)}
       {nearSpots.length > 0 && <Suspense fallback={null}><AssetTrees spots={nearSpots} /></Suspense>}
+      {useAssets && <Suspense fallback={null}><PathFlora /></Suspense>}
       <Lamps />
     </group>
   )

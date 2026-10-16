@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from 'react'
+import { memo, Suspense, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
@@ -7,6 +7,7 @@ import type { CloudObject, WorldObject } from '../../state/types'
 import { useEnv, useStyleDef } from '../common/EnvContext'
 import { getMaterial } from '../common/materials'
 import { Waterfall } from '../common/Waterfall'
+import { ASSETS_ON, AssetTreeVisual } from '../common/AssetTrees'
 import { islandGeometries, objectGeometry } from './geoCache'
 import { getSim, stepSim } from '../systems/simulation'
 import { beginDrag } from '../systems/InteractionController'
@@ -114,20 +115,40 @@ export function IslandVisual({ variant, override }: { variant: number; override?
       {spec.houses.map((h, i) => (
         <mesh key={i} geometry={g.houses[i]} material={bld} position={[h.x, islandTopY(spec, h.x, h.z), h.z]} rotation-y={h.rot} scale={h.s} castShadow={!override} receiveShadow={!override} />
       ))}
-      {spec.trees.map((t, i) => (
-        <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow={!override} receiveShadow={!override} />
-      ))}
+      {spec.trees.map((t, i) => {
+        const proc = <mesh geometry={g.tree} material={fol} scale={t.s * 0.85} castShadow={!override} receiveShadow={!override} />
+        return (
+          <group key={i} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} rotation-y={i * 1.7}>
+            {ASSETS_ON
+              ? <Suspense fallback={proc}><AssetTreeVisual name={ISLAND_TREES[(variant + i) % ISLAND_TREES.length]} targetH={10 * t.s} override={override} tint={((variant * 3 + i) * 0.37) % 1} /></Suspense>
+              : proc}
+          </group>
+        )
+      })}
       {false && !override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
       {!override && spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.3} />}
     </>
   )
 }
 
+const TREE_OBJ = ['CommonTree_1', 'CommonTree_3', 'CommonTree_4'], PINE_OBJ = ['Pine_1', 'Pine_2', 'Pine_3']
+const ISLAND_TREES = ['CommonTree_1', 'CommonTree_2', 'CommonTree_4', 'CommonTree_3']
+
 export function ObjectVisual({ obj, override }: { obj: Pick<WorldObject, 'type' | 'variant'>; override?: THREE.Material }) {
   const style = useStyleDef()
   if (obj.type === 'island') return <IslandVisual variant={obj.variant} override={override} />
   const geo = objectGeometry(style, obj.type, obj.variant)
   const role = obj.type === 'tree' || obj.type === 'pine' ? 'foliage' : obj.type === 'rock' ? 'rock' : obj.type === 'house' || obj.type === 'tower' ? 'building' : 'prop'
+  if (ASSETS_ON && (obj.type === 'tree' || obj.type === 'pine')) {
+    const pine = obj.type === 'pine'
+    const v = obj.variant % 3
+    const proc = <mesh geometry={geo} material={override ?? getMaterial(style, role)} castShadow={!override} receiveShadow={!override} raycast={override ? noRaycast : undefined} />
+    return (
+      <Suspense fallback={proc}>
+        <AssetTreeVisual name={pine ? PINE_OBJ[v] : TREE_OBJ[v]} targetH={OBJECT_KINDS[obj.type].height * 1.15} override={override} pine={pine} tint={v * 0.4} />
+      </Suspense>
+    )
+  }
   return (
     <>
       <mesh geometry={geo} material={override ?? getMaterial(style, role)} castShadow={!override} receiveShadow={!override} raycast={override ? noRaycast : undefined} />
