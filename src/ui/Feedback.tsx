@@ -21,7 +21,12 @@ export function Toasts() {
   const toasts = useWorld((s) => s.toasts)
   return (
     <div className="toasts" role="status" aria-live="polite">
-      {toasts.map((t) => <div key={t.id} className={`toast glass ${t.kind}`}>{t.kind === 'ok' && <Icon name="check" size={15} />}{t.text}</div>)}
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast glass ${t.kind}`}>
+          {t.kind === 'ok' && <Icon name="check" size={15} />}{t.text}
+          {t.action && <button className="toast-action" onClick={() => { t.action!.run(); useWorld.getState().dismissToast(t.id) }} data-testid="toast-action">{t.action.label}</button>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -32,6 +37,7 @@ export function StatusChips() {
   const placing = useWorld((s) => s.placing)
   const setPlacing = useWorld((s) => s.setPlacing)
   const restore = useWorld((s) => s.restoreRules)
+  const panel = useWorld((s) => s.panel)
   if (placing) {
     return (
       <div className="status-chip glass" data-testid="placing-chip">
@@ -40,7 +46,7 @@ export function StatusChips() {
       </div>
     )
   }
-  if (gravity === 1 && !orbit) return null
+  if ((gravity === 1 && !orbit) || panel === 'gravity') return null
   const label = gravity < -0.05 ? '重力反转' : gravity < 0.1 ? '失重' : gravity < 0.95 ? `低重力 ${Math.round(gravity * 100)}%` : '正常重力'
   return (
     <div className="status-chip glass rules" data-testid="gravity-chip">
@@ -109,7 +115,7 @@ export function useAppEffects() {
       }
       const obj = st.objects.find((o) => o.id === st.selectedId)
       if (!obj) return
-      if (e.key === 'Delete' || e.key === 'Backspace') { st.removeObject(obj.id); sims.delete(obj.id); e.preventDefault() }
+      if (e.key === 'Delete' || e.key === 'Backspace') { st.deleteWithUndo(obj.id); sims.delete(obj.id); e.preventDefault() }
       else if (e.key === 'r' || e.key === 'R') st.updateObject(obj.id, { rotY: obj.rotY + (e.shiftKey ? 1 : -1) * Math.PI / 12 })
       else if (e.key === 'f' || e.key === 'F') { if (obj.type !== 'island') st.toggleFloat(obj.id) }
     }

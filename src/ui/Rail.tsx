@@ -76,6 +76,9 @@ function GravityPanel() {
     <div className="panel glass" data-testid="panel-gravity">
       <div className="panel-title">世界规则 <span className="panel-value">重力 {pct}%</span></div>
       <input
+        onPointerDown={(e) => e.currentTarget.closest('.panel')?.classList.add('peek')}
+        onPointerUp={(e) => e.currentTarget.closest('.panel')?.classList.remove('peek')}
+        onPointerCancel={(e) => e.currentTarget.closest('.panel')?.classList.remove('peek')}
         className="slider"
         type="range" min={-1} max={1} step={0.05} value={gravity}
         onChange={(e) => setGravity(Number(e.target.value))}

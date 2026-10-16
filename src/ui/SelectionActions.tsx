@@ -34,7 +34,7 @@ export function ObjectActions({ obj }: { obj: WorldObject }) {
         <ToolBtn icon="float" label={obj.floating ? '落回地面' : '漂浮起来'} active={!!obj.floating} onClick={() => st.toggleFloat(obj.id)} />
       )}
       <span className="tb-sep" />
-      <ToolBtn icon="trash" label="删除" danger onClick={() => { st.removeObject(obj.id); sims.delete(obj.id); st.toast(`已删除${kind.label}`) }} />
+      <ToolBtn icon="trash" label="删除" danger onClick={() => { st.deleteWithUndo(obj.id); sims.delete(obj.id) }} />
     </>
   )
 }

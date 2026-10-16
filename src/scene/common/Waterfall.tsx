@@ -37,7 +37,7 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
         float fade = smoothstep(0.0, 0.55, vUv.y);
         // translucent sheet: mostly see-through with bright foamy streaks, a lip of white water at the top
         float lip = smoothstep(0.9, 1.0, vUv.y);
-        float a = edge * fade * (0.12 + pow(streaks, 2.0) * 0.6 + lip * 0.35);
+        float a = edge * fade * (0.24 + pow(streaks, 2.0) * 0.6 + lip * 0.4);
         vec3 c = uColor * uLight * (0.9 + streaks * 0.45 + lip * 0.3);
         gl_FragColor = vec4(c, a * 0.8);
         #include <fog_fragment>

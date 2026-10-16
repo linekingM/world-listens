@@ -30,12 +30,12 @@ export function GravityFX() {
     const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32)
     grd.addColorStop(0, 'rgba(255,250,230,1)'); grd.addColorStop(0.3, 'rgba(255,230,170,0.6)'); grd.addColorStop(1, 'rgba(255,220,150,0)')
     g.fillStyle = grd; g.fillRect(0, 0, 64, 64)
-    return new THREE.PointsMaterial({ map: new THREE.CanvasTexture(cv), size: 0.9, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, color: '#ffe7b0' })
+    return new THREE.PointsMaterial({ map: new THREE.CanvasTexture(cv), size: 0.45, sizeAttenuation: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, color: '#e8f0ff' })
   }, [])
   useFrame((s) => {
     const w = 1 - env.gravity
     const k = smoothstep(0.05, 0.6, w)
-    mat.opacity = k * (0.55 + env.sun.night * 0.4)
+    mat.opacity = k * (0.6 - env.sun.night * 0.25)
     ref.current.visible = k > 0.01
     if (!ref.current.visible) return
     const t = s.clock.elapsedTime

@@ -60,9 +60,9 @@ export function addTerrainFx(mat: THREE.Material) {
           vec2 p = vWorldP.xz;
           // wind shimmer: travelling bands of slightly lighter grass
           float sh = tn(p * 0.08 + vec2(uTime * 0.35, uTime * 0.12)) * 0.6 + tn(p * 0.31 - vec2(uTime * 0.6, 0.0)) * 0.4;
-          diffuseColor.rgb *= 0.95 + sh * 0.1;
+          diffuseColor.rgb *= 0.96 + sh * 0.08;
           // fine grain variation
-          diffuseColor.rgb *= 0.93 + tn(p * 1.7) * 0.14;
+          diffuseColor.rgb *= 0.97 + tn(p * 0.045) * 0.06 + tn(p * 1.3) * 0.03;
         }`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         {

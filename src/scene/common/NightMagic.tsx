@@ -18,7 +18,7 @@ function glowTexture(inner: string, outer: string) {
 /** Fireflies blinking over the meadow on clear nights. */
 function Fireflies() {
   const env = useEnv()
-  const N = 220
+  const N = 110
   const ref = useRef<THREE.Points>(null!)
   const { geo, base } = useMemo(() => {
     const r = rng(42)
@@ -33,7 +33,7 @@ function Fireflies() {
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 3), 3))
     return { geo, base }
   }, [])
-  const mat = useMemo(() => new THREE.PointsMaterial({ map: glowTexture('rgba(255,255,220,1)', 'rgba(200,255,120,0.5)'), size: 0.9, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }), [])
+  const mat = useMemo(() => new THREE.PointsMaterial({ map: glowTexture('rgba(255,255,220,1)', 'rgba(200,255,120,0.5)'), size: 0.5, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }), [])
   useFrame((s) => {
     const k = activeSurprises.has('fireflies') ? smoothstep(-4, -10, env.sun.elevation) : 0
     mat.opacity = Math.min(1, (mat.opacity ?? 0) + ((k - mat.opacity) * 0.05))
@@ -44,7 +44,7 @@ function Fireflies() {
     for (let i = 0; i < N; i++) {
       const ph = base[i * 4 + 3]
       p.setXYZ(i, base[i * 4] + Math.sin(t * 0.3 + ph) * 1.5, base[i * 4 + 1] + Math.sin(t * 0.7 + ph * 2) * 0.4, base[i * 4 + 2] + Math.cos(t * 0.25 + ph) * 1.5)
-      const blink = Math.max(0, Math.sin(t * 1.7 + ph * 3)) ** 3
+      const blink = Math.max(0, Math.sin(t * 1.3 + ph * 3)) ** 6
       c.setXYZ(i, 0.9 * blink * 2, 1.0 * blink * 2, 0.45 * blink * 2)
     }
     p.needsUpdate = true; c.needsUpdate = true
@@ -81,10 +81,10 @@ function Meteors() {
       }
       m.visible = st.t < 1
       if (!m.visible) return
-      const len = 140
+      const len = 90
       m.position.copy(st.from).addScaledVector(st.dir, st.t * 500)
       m.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), st.dir)
-      m.scale.set(len * Math.sin(st.t * Math.PI), 2.2, 1)
+      m.scale.set(len * Math.sin(st.t * Math.PI), 0.9, 1)
     })
     mat.opacity = night
   })

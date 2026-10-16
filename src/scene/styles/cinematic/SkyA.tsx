@@ -52,17 +52,17 @@ export function SkyA() {
         texColor *= mix(vec3(1.0), vec3(1.4, 0.82, 0.52), uGolden * hz * (0.45 + 0.55 * toSun));
         texColor = texColor / (1.0 + max(max(texColor.r, texColor.g), texColor.b) * 0.35);
         // larger, softer cinematic sun disc + halo (the physical one is only ~0.5°)
-        float disc2 = smoothstep(0.99955, 0.99975, cosTheta);
+        float disc2 = smoothstep(0.9993, 0.99978, cosTheta);
         float halo = pow(max(cosTheta, 0.0), 180.0) * 0.6 + pow(max(cosTheta, 0.0), 1400.0) * 1.5;
         float vis = smoothstep(-0.02, 0.01, vSunDirection.y);
-        texColor += uSunTint * (disc2 * 8.0 * (1.0 - uCover * 0.85) + halo * (0.35 + uGolden * 0.6) * (1.0 - uCover * 0.5)) * vis;
+        texColor += uSunTint * (disc2 * 3.2 * (1.0 - smoothstep(0.25, 0.7, uCover)) + halo * (0.35 + uGolden * 0.6) * (1.0 - uCover * 0.5)) * vis;
         // midday: richer blue overhead (the physical model reads pale after tone mapping)
         float lum0 = dot(texColor, vec3(0.299, 0.587, 0.114));
         texColor = max(mix(vec3(lum0), texColor, mix(1.0, uSat, smoothstep(0.0, 0.35, direction.y))), 0.0);
         // overcast: flatten towards a soft luminous grey; mist: fade the lower sky into the fog colour
         float lum = dot(texColor, vec3(0.299, 0.587, 0.114));
         vec3 overcast = vec3(lum) * vec3(0.96, 0.99, 1.04) * (0.85 + 0.25 * smoothstep(-0.1, 0.6, direction.y));
-        texColor = mix(texColor, overcast, uCover * 0.75);
+        texColor = mix(texColor, overcast, smoothstep(0.1, 0.85, uCover) * 0.92);
         texColor = mix(texColor, uFogCol, uMist * exp(-max(direction.y, 0.0) * 3.5) * 0.9);
         vec3 nightCol = mix(uNightHorizon, uNightTop, pow(clamp(direction.y, 0.0, 1.0), 0.6));
         vec3 sp = direction * 260.0; vec3 cell = floor(sp);
@@ -89,7 +89,7 @@ export function SkyA() {
     u.uCover.value = Math.max(0, env.weather.cover - 0.25) / 0.75
     u.uMist.value = env.weather.mist
     u.uFogCol.value.copy((st.scene.fog as THREE.FogExp2 | null)?.color ?? WHITE)
-    u.cloudCoverage.value = 0.25 + env.weather.cover * 0.55
+    u.cloudCoverage.value = env.weather.cover > 0.45 ? 0.1 : 0.25 + env.weather.cover * 0.3
     u.cloudDensity.value = 0.3 + env.weather.cover * 0.5
   })
   return <primitive object={sky} />

@@ -13,7 +13,7 @@
   --accent: #ffd99a;
   --accent-ink: #3a2a10;
   --hover: rgba(255, 255, 255, 0.12);
-  --on: rgba(255, 236, 196, 0.24);
+  --on: rgba(255, 210, 140, 0.34);
   --danger: #ffb4a6;
   --title-shadow: 0 1px 2px rgba(8, 16, 36, 0.5), 0 3px 22px rgba(8, 16, 40, 0.4);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; }
 .rail-btn { all: unset; cursor: pointer; position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; transition: background 0.2s, transform 0.12s; }
 .rail-btn:hover { background: var(--hover); }
 .rail-btn:active { transform: scale(0.94); }
-.rail-btn.on { background: var(--on); box-shadow: inset 0 0 0 1px rgba(255, 228, 170, 0.45); color: #fff3d6; }
+.rail-btn.on { background: var(--on); box-shadow: inset 0 0 0 1.5px #ffd99a; color: #fff6e2; }
 .rail-btn:focus-visible { outline: 2px solid var(--accent); }
 .rail-btn.collapse { width: 44px; height: 36px; color: var(--ink-soft); }
 .rail-label { position: absolute; left: 54px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px; letter-spacing: 0.1em; padding: 5px 10px; border-radius: 8px; background: rgba(16, 24, 44, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.15s; }
@@ -140,7 +140,7 @@ button { font: inherit; color: inherit; }
 .arc-track { fill: none; stroke: rgba(255, 255, 255, 0.28); stroke-width: 1.2; stroke-dasharray: 1.5 4; stroke-linecap: round; }
 .arc-day { fill: none; stroke-width: 2.4; stroke-linecap: round; }
 .horizon { stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
-.tick { fill: var(--ink-faint); font-size: 8.5px; text-anchor: middle; font-variant-numeric: tabular-nums; letter-spacing: 0.05em; }
+.tick { fill: rgba(255,255,255,0.85); stroke: rgba(10,16,32,0.35); stroke-width: 2px; paint-order: stroke; font-size: 10px; text-anchor: middle; font-variant-numeric: tabular-nums; letter-spacing: 0.05em; }
 .sun-knob { fill: #fff8e6; stroke: #ffd08a; stroke-width: 1.6; }
 .sun-glow { fill: rgba(255, 214, 140, 0.35); filter: blur(3px); }
 .moon { fill: #eef3ff; stroke: rgba(200, 215, 255, 0.8); stroke-width: 1; }
@@ -206,3 +206,15 @@ button { font: inherit; color: inherit; }
 
 .shutter-flash { position: fixed; inset: 0; background: #fff; pointer-events: none; z-index: 100; animation: shutter 0.65s ease-out forwards; }
 @keyframes shutter { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+
+.toast-action { all: unset; cursor: pointer; margin-left: 8px; padding: 3px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 12px; pointer-events: auto; }
+.toasts .toast { pointer-events: auto; }
+.panel { transition: opacity 0.2s; }
+.panel.peek { opacity: 0.25; }
+@media (max-width: 720px) {
+  .rail-btn { height: 46px; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+  .rail-btn .rail-label { display: block; position: static; transform: none; opacity: 1; background: none; padding: 0; font-size: 9.5px; letter-spacing: 0.04em; color: var(--ink-soft); }
+  .rail-btn.on .rail-label { opacity: 1 !important; color: #fff3d6; }
+  .rail-wrap:has(.panel-slot) .rail-label { opacity: 1 !important; }
+  .dial-phase { letter-spacing: 0.1em; }
+}

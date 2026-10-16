@@ -72,7 +72,7 @@ export function SunRig() {
     hemi.current.intensity = L.hemiI
     const fog = scene.fog as THREE.FogExp2
     fog.color.copy(L.fog)
-    fog.density = style.fogDensity * (1 + env.sun.golden * 0.35 + env.sun.night * 0.2 + cover * 0.5 + mist * 2.6)
+    fog.density = style.fogDensity * (1 + env.sun.golden * 0.35 + env.sun.night * 0.2 + cover * 0.5 + mist * 1.7)
 
     // ── shared shader uniforms ──
     fxUniforms.uTime.value = state.clock.elapsedTime
@@ -98,8 +98,8 @@ export function SunRig() {
         shadow-camera-bottom={-110}
         shadow-camera-near={20}
         shadow-camera-far={600}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.6}
+        shadow-bias={-0.00025}
+        shadow-normalBias={0.18}
         shadow-radius={style.shadowRadius ?? 3}
       />
       <hemisphereLight ref={hemi} />

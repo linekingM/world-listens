@@ -35,9 +35,11 @@ export function CameraRig() {
     if (aspect < 1) {
       // portrait: keep a usable horizontal field of view and step back a little
       const h = MathUtils.degToRad(style.camera.fov * 1.6 * 0.62)
-      fov = Math.min(78, MathUtils.radToDeg(2 * Math.atan(Math.tan(h / 2) / aspect)))
-      pos.sub(target).multiplyScalar(1.12).add(target)
-      pos.y += 4
+      fov = Math.min(68, MathUtils.radToDeg(2 * Math.atan(Math.tan(h / 2) / aspect)))
+      pos.sub(target).multiplyScalar(1.1).add(target)
+      pos.y += 1.5
+      // look a little lower so the meadow and road fill the tall frame instead of empty sky
+      target.y -= 5
     }
     home.current.pos.copy(pos)
     home.current.target.copy(target)

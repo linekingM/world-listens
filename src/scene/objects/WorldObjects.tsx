@@ -44,6 +44,16 @@ const ringMat = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, d
 export const bulbMat = new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false })
 const bulbGeo = new THREE.SphereGeometry(0.13, 8, 6)
 const noRaycast = () => null
+function outlineMaterial(thickness: number) {
+  const m = new THREE.MeshBasicMaterial({ color: '#ffe1a8', side: THREE.BackSide, transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false, fog: false })
+  m.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n transformed += normalize(objectNormal) * ${thickness.toFixed(3)};`)
+  }
+  m.customProgramCacheKey = () => 'outline' + thickness
+  return m
+}
+export const outlineSmall = outlineMaterial(0.07)
+export const outlineIsland = outlineMaterial(0.32)
 
 function islandTopY(spec: IslandSpec, x: number, z: number) {
   const r2 = (x * x + z * z) / Math.pow(spec.radius * 0.85, 2)
@@ -72,35 +82,35 @@ function CloudSkirt({ radius, depth, seed }: { radius: number; depth: number; se
   )
 }
 
-export function IslandVisual({ variant }: { variant: number }) {
+export function IslandVisual({ variant, override }: { variant: number; override?: THREE.Material }) {
   const style = useStyleDef()
   const g = useMemo(() => islandGeometries(style, variant), [style, variant])
   const { spec } = g
-  const rock = getMaterial(style, 'rock'), bld = getMaterial(style, 'building'), fol = getMaterial(style, 'foliage')
+  const rock = override ?? getMaterial(style, 'rock'), bld = override ?? getMaterial(style, 'building'), fol = override ?? getMaterial(style, 'foliage')
   return (
     <>
-      <mesh geometry={g.rock} material={rock} castShadow receiveShadow />
+      <mesh geometry={g.rock} material={rock} castShadow={!override} receiveShadow={!override} />
       {spec.houses.map((h, i) => (
-        <mesh key={i} geometry={g.houses[i]} material={bld} position={[h.x, islandTopY(spec, h.x, h.z), h.z]} rotation-y={h.rot} scale={h.s} castShadow receiveShadow />
+        <mesh key={i} geometry={g.houses[i]} material={bld} position={[h.x, islandTopY(spec, h.x, h.z), h.z]} rotation-y={h.rot} scale={h.s} castShadow={!override} receiveShadow={!override} />
       ))}
       {spec.trees.map((t, i) => (
-        <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow receiveShadow />
+        <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow={!override} receiveShadow={!override} />
       ))}
-      <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />
-      {spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.17} />}
+      {!override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
+      {!override && spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.3} />}
     </>
   )
 }
 
-export function ObjectVisual({ obj }: { obj: Pick<WorldObject, 'type' | 'variant'> }) {
+export function ObjectVisual({ obj, override }: { obj: Pick<WorldObject, 'type' | 'variant'>; override?: THREE.Material }) {
   const style = useStyleDef()
-  if (obj.type === 'island') return <IslandVisual variant={obj.variant} />
+  if (obj.type === 'island') return <IslandVisual variant={obj.variant} override={override} />
   const geo = objectGeometry(style, obj.type, obj.variant)
   const role = obj.type === 'tree' || obj.type === 'pine' ? 'foliage' : obj.type === 'rock' ? 'rock' : obj.type === 'house' || obj.type === 'tower' ? 'building' : 'prop'
   return (
     <>
-      <mesh geometry={geo} material={getMaterial(style, role)} castShadow receiveShadow />
-      {obj.type === 'lamp' && <mesh geometry={bulbGeo} material={bulbMat} position={[-0.82, 4.05, 0]} />}
+      <mesh geometry={geo} material={override ?? getMaterial(style, role)} castShadow={!override} receiveShadow={!override} raycast={override ? noRaycast : undefined} />
+      {!override && obj.type === 'lamp' && <mesh geometry={bulbGeo} material={bulbMat} position={[-0.82, 4.05, 0]} />}
     </>
   )
 }
@@ -139,8 +149,9 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
     const spread = kind.airborne ? 1.5 + height * 0.02 : 1.25 + height * 0.06
     bm.scale.setScalar(radius * 2 * spread)
     const vis = env.sun.day * 0.65 + 0.2
-    blobMat.opacity = (kind.airborne ? 0.32 * smoothstep(90, 15, height) : 0.42 * smoothstep(16, 0, height)) * vis * (1 - env.weather.mist * 0.5)
+    blobMat.opacity = (kind.airborne ? 0.36 * smoothstep(90, 15, height) : 0.55 * smoothstep(16, 0, height)) * vis * (1 - env.weather.mist * 0.5)
     bm.visible = blobMat.opacity > 0.01
+    if (selected) { outlineSmall.opacity = outlineIsland.opacity = 0.55 + Math.sin(t * 3) * 0.25 }
     if (ring.current) {
       ring.current.position.set(b.position.x, (kind.airborne ? b.position.y + radius * 0.17 : gy) + 0.1, b.position.z)
       ring.current.scale.setScalar(radius * 2.5 * (1 + Math.sin(t * 3) * 0.03))
@@ -158,6 +169,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
     <>
       <group ref={body} onPointerDown={onDown} onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'grab' }} onPointerOut={() => { document.body.style.cursor = '' }}>
         <group scale={obj.scale}><ObjectVisual obj={obj} /></group>
+        {selected && <group scale={obj.scale}><ObjectVisual obj={obj} override={kind.airborne ? outlineIsland : outlineSmall} /></group>}
         {selected && <ObjectToolbar obj={obj} height={kind.airborne ? radius * 0.3 + 7 : kind.height * obj.scale + 1.2} />}
       </group>
       <mesh ref={blob} geometry={planeGeo} material={blobMat} raycast={noRaycast} renderOrder={1} />
@@ -185,7 +197,7 @@ export function WorldObjects() {
   const env = useEnv()
   useFrame(() => {
     const on = smoothstep(2, -6, env.sun.elevation)
-    bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 5)
+    bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 2.6)
     // island cloud skirts pick up sky / sun colour
     const L = env.light
     _c.copy(L.hemiSky).multiplyScalar(0.55 * L.hemiI).add(_c2.copy(L.sun).multiplyScalar(0.22 * L.sunI)).lerp(L.fog, 0.25)

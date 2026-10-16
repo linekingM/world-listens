@@ -19,7 +19,7 @@ function TreeInstances({ geometry, material, spots }: { geometry: THREE.BufferGe
     const m = ref.current
     const c = new THREE.Color()
     spots.forEach((t, i) => {
-      _e.set(0, t.rot, 0)
+      _e.set(Math.sin(t.rot * 3.1) * 0.05, t.rot, Math.cos(t.rot * 2.3) * 0.05)
       _q.setFromEuler(_e)
       _s.setScalar(t.s)
       _p.set(t.x, t.y - 0.1, t.z)
@@ -57,19 +57,19 @@ function Lamps() {
     const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32)
     grd.addColorStop(0, 'rgba(255,220,160,0.9)'); grd.addColorStop(0.3, 'rgba(255,200,140,0.3)'); grd.addColorStop(1, 'rgba(255,190,120,0)')
     g.fillStyle = grd; g.fillRect(0, 0, 64, 64)
-    return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: false, toneMapped: false })
+    return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: true, toneMapped: false })
   }, [])
   const halos = useRef<THREE.Group>(null!)
   useFrame(() => {
     const on = smoothstep(2, -6, env.sun.elevation)
-    bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 5)
+    bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 2.6)
     poolMat.opacity = on * 0.8
     poolMat.visible = on > 0.01
     // in mist the lamps bloom into soft lantern halos
     const m = env.weather.mist
-    haloMat.opacity = on * (0.25 + m * 0.6)
+    haloMat.opacity = on * (0.2 + m * 0.4)
     halos.current.visible = haloMat.opacity > 0.01
-    const sc = 2.2 + m * 5
+    const sc = 2 + m * 1.6
     halos.current.children.forEach((c) => c.scale.set(sc, sc, 1))
   })
   return (
