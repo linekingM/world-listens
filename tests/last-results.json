@@ -7,92 +7,92 @@
   {
     "name": "HUD covers < 12% of the screen (desktop)",
     "ok": true,
-    "s": 0.004
+    "s": 0.016
   },
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 35.059
+    "s": 38.968
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 49.538
+    "s": 56.237
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 57.863
+    "s": 59.382
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 4.97
+    "s": 5.596
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 21.705
+    "s": 25.831
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 2.194
+    "s": 2.519
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 5.357
+    "s": 6.787
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 14.754
+    "s": 17.778
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 22.422
+    "s": 22.579
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
-    "ok": false,
-    "err": "gravity chip"
+    "ok": true,
+    "s": 418.712
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 40.572
+    "s": 47.257
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 12.207
+    "s": 12.404
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 5.183
+    "s": 5.176
   },
   {
     "name": "share link round-trips the whole world",
     "ok": true,
-    "s": 104.041
+    "s": 107.205
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
     "ok": true,
-    "s": 19.737
+    "s": 18.771
   },
   {
     "name": "autosave: reload restores the edited world",
     "ok": true,
-    "s": 10.532
+    "s": 9.201
   },
   {
     "name": "reset world (two-step confirm)",
     "ok": true,
-    "s": 73.001
+    "s": 4.337
   },
   {
     "name": "no runtime errors during the whole desktop session",
@@ -107,6 +107,6 @@
   {
     "name": "first-visit onboarding hint shows once and dismisses",
     "ok": true,
-    "s": 112.871
+    "s": 114.34
   }
 ]

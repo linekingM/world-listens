@@ -47,7 +47,7 @@ const noRaycast = () => null
 function outlineMaterial(thickness: number) {
   const m = new THREE.MeshBasicMaterial({ color: '#ffe1a8', side: THREE.BackSide, transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false, fog: false })
   m.onBeforeCompile = (s) => {
-    s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n transformed += normalize(objectNormal) * ${thickness.toFixed(3)};`)
+    s.vertexShader = s.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n transformed += normalize(normal) * ${thickness.toFixed(3)};`)
   }
   m.customProgramCacheKey = () => 'outline' + thickness
   return m
