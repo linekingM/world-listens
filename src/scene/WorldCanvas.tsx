@@ -15,6 +15,7 @@ import { Grass } from './common/Grass'
 import { GravityFX } from './common/GravityFX'
 import { CityHaze } from './common/CityHaze'
 import { NightMagic } from './common/NightMagic'
+import { WindGust } from './common/WindGust'
 
 const NO_CLOUDS = new URLSearchParams(window.location.search).has('noclouds')
 
@@ -42,6 +43,7 @@ export function WorldCanvas() {
           <WorldObjects />
           <GravityFX />
           <NightMagic />
+          <WindGust />
           <SunHandle />
           <InteractionController />
           {Extras && <Extras />}

@@ -355,6 +355,13 @@ await test('reset world (two-step confirm)', async () => {
   await page.keyboard.press('Escape')
 })
 
+await test('sun-drag wow: fast time change raises a wind gust with petals', async () => {
+  await page.evaluate(() => { const s = window.__world.getState(); let k = 0; window.__gustTimer = setInterval(() => { k++; s.setTime(17.6 + 0.4 * Math.abs(Math.sin(k * 0.5))) }, 120) })
+  await page.waitForFunction(() => window.__gust > 0.2, null, { timeout: 60000 })
+  await page.evaluate(() => clearInterval(window.__gustTimer))
+  await page.waitForFunction(() => window.__gust < 0.1, null, { timeout: 90000 })
+})
+
 await test('no runtime errors during the whole desktop session', async () => {
   assert(page.errors.length === 0, page.errors.join(' | '))
 })

@@ -77,7 +77,7 @@ export function SunRig() {
 
     // ── shared shader uniforms ──
     fxUniforms.uTime.value = state.clock.elapsedTime
-    fxUniforms.uWind.value = 0.8 + cover * 0.8 + (1 - Math.max(0, env.gravity)) * 0.6
+    fxUniforms.uWind.value = 0.8 + cover * 0.8 + (1 - Math.max(0, env.gravity)) * 0.6 + fxUniforms.uGust.value * 2.6
     fxUniforms.uSunDir.value.copy(env.sun.dir)
     fxUniforms.uSunView.value.copy(env.sun.dir).transformDirection(camera.matrixWorldInverse)
     fxUniforms.uSunCol.value.copy(L.sun)
