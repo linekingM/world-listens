@@ -2,111 +2,116 @@
   {
     "name": "loads without errors, no style switcher, HUD present",
     "ok": true,
-    "s": 0.049
+    "s": 0.051
   },
   {
     "name": "HUD covers < 12% of the screen (desktop)",
     "ok": true,
-    "s": 0.004
+    "s": 0.008
   },
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 34.955
+    "s": 34.21
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 47.714
+    "s": 46.351
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 24.481
+    "s": 24.408
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 5.34
+    "s": 4.868
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 23.557
+    "s": 22.349
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 2.496
+    "s": 2.318
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 5.724
+    "s": 5.601
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 16.126
+    "s": 14.786
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 24.118
+    "s": 672.414
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
     "ok": true,
-    "s": 32.68
+    "s": 37.743
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 43.197
+    "s": 44.439
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 12.354
+    "s": 12.167
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 4.404
+    "s": 5.424
   },
   {
     "name": "share link round-trips the whole world",
-    "ok": true,
-    "s": 594.546
+    "ok": false,
+    "err": "page.waitForFunction: Target page, context or browser has been closed"
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
-    "ok": true,
-    "s": 18.751
+    "ok": false,
+    "err": "page.evaluate: Target page, context or browser has been closed"
   },
   {
     "name": "autosave: reload restores the edited world",
-    "ok": true,
-    "s": 9.704
+    "ok": false,
+    "err": "page.evaluate: Target page, context or browser has been closed"
   },
   {
     "name": "reset world (two-step confirm)",
-    "ok": true,
-    "s": 4.907
+    "ok": false,
+    "err": "page.click: Target page, context or browser has been closed"
+  },
+  {
+    "name": "sun-drag wow: fast time change raises a wind gust with petals",
+    "ok": false,
+    "err": "page.evaluate: Target page, context or browser has been closed"
   },
   {
     "name": "no runtime errors during the whole desktop session",
     "ok": true,
-    "s": 0
+    "s": 0.001
   },
   {
     "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
-    "ok": true,
-    "s": 46.656
+    "ok": false,
+    "err": "browser.newContext: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /usr/bin/google-chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-bre"
   },
   {
     "name": "first-visit onboarding hint shows once and dismisses",
-    "ok": true,
-    "s": 19.639
+    "ok": false,
+    "err": "browser.newContext: Target page, context or browser has been closed"
   }
 ]
