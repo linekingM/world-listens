@@ -1,0 +1,1 @@
+I'll open every screenshot and the HUD/lighting code so the notes name concrete visual and UX fixes, not general taste.The frames are in. Next I’ll match what I see to the actual lighting, shaders, and HUD so each fix names a real value.

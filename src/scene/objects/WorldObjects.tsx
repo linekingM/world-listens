@@ -51,6 +51,27 @@ function islandTopY(spec: IslandSpec, x: number, z: number) {
 }
 
 // ───────── visuals ─────────
+const skirtTex = new THREE.TextureLoader().load('/tex/cloud.png')
+const skirtMats: THREE.SpriteMaterial[] = []
+/** Soft cloud wisps clinging to an island's underside (sea-of-clouds mood). */
+function CloudSkirt({ radius, depth, seed }: { radius: number; depth: number; seed: number }) {
+  const mats = useMemo(() => Array.from({ length: 4 }, (_, i) => {
+    const m = new THREE.SpriteMaterial({ map: skirtTex, transparent: true, depthWrite: false, opacity: 0.5, rotation: seed + i * 1.7 })
+    skirtMats.push(m)
+    return m
+  }), [seed])
+  return (
+    <group>
+      {mats.map((m, i) => {
+        const a = seed * 2.3 + i * (Math.PI / 2) + 0.4
+        const r = radius * (0.45 + (i % 2) * 0.25)
+        const sz = radius * (1.5 + (i % 3) * 0.35)
+        return <sprite key={i} material={m} position={[Math.cos(a) * r, -depth * (0.32 + (i % 2) * 0.16), Math.sin(a) * r]} scale={[sz * 1.6, sz * 0.7, 1]} renderOrder={2} />
+      })}
+    </group>
+  )
+}
+
 export function IslandVisual({ variant }: { variant: number }) {
   const style = useStyleDef()
   const g = useMemo(() => islandGeometries(style, variant), [style, variant])
@@ -65,7 +86,8 @@ export function IslandVisual({ variant }: { variant: number }) {
       {spec.trees.map((t, i) => (
         <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow receiveShadow />
       ))}
-      {spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.12} />}
+      <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />
+      {spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.17} />}
     </>
   )
 }
@@ -85,6 +107,7 @@ export function ObjectVisual({ obj }: { obj: Pick<WorldObject, 'type' | 'variant
 
 // ───────── editable object ─────────
 const _v = new THREE.Vector3()
+const _c = new THREE.Color(), _c2 = new THREE.Color()
 
 const EditableObject = memo(function EditableObject({ obj, selected }: { obj: WorldObject; selected: boolean }) {
   const env = useEnv()
@@ -163,6 +186,10 @@ export function WorldObjects() {
   useFrame(() => {
     const on = smoothstep(2, -6, env.sun.elevation)
     bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 5)
+    // island cloud skirts pick up sky / sun colour
+    const L = env.light
+    _c.copy(L.hemiSky).multiplyScalar(0.55 * L.hemiI).add(_c2.copy(L.sun).multiplyScalar(0.22 * L.sunI)).lerp(L.fog, 0.25)
+    for (const m of skirtMats) { m.color.copy(_c); m.opacity = 0.42 + env.weather.mist * 0.2 }
   })
   return (
     <group>
