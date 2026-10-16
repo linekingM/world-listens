@@ -1,12 +1,13 @@
 import { addFlagstones } from './materialFx'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { AssetTrees } from './AssetTrees'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useEnv, useStyleDef } from './EnvContext'
 import {
   buildCity, buildLamp, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
 } from '../../world/geometry'
-import { cityBuildings, lampSpots, terrainHeight, treeSpots } from '../../world/layout'
+import { cityBuildings, lampSpots, roadX, terrainHeight, treeSpots } from '../../world/layout'
 import { getMaterial } from './materials'
 import { smoothstep } from '../../lib/random'
 
@@ -108,7 +109,13 @@ export function WorldContent() {
   const road = useMemo(() => buildRoad(opts), [opts])
   const city = useMemo(() => buildCity(cityBuildings(), opts), [opts])
   const mountains = useMemo(() => buildMountains(opts), [opts])
-  const spots = useMemo(() => treeSpots(), [])
+  const allSpots = useMemo(() => treeSpots(), [])
+  // near/mid trees use the hand-modelled CC0 assets; distant fogged groves keep the cheap procedural ones
+  // WIP: asset trees behind ?assets=1 until their rendering is verified
+  const useAssets = typeof location !== 'undefined' && new URLSearchParams(location.search).has('assets')
+  const isNear = (s: { x: number; z: number }) => useAssets && s.z > -190 && Math.abs(s.x - roadX(s.z)) < 75
+  const nearSpots = useMemo(() => allSpots.filter(isNear), [allSpots])
+  const spots = useMemo(() => allSpots.filter((s) => !isNear(s)), [allSpots])
   const trees = useMemo(() => {
     const groups: { geo: THREE.BufferGeometry; spots: typeof spots }[] = []
     for (const kind of [0, 1, 2] as const) for (let v = 0; v < VARIANTS; v++) {
@@ -151,6 +158,7 @@ export function WorldContent() {
       <mesh geometry={city} material={mats.city} castShadow receiveShadow />
       <mesh geometry={mountains} material={mats.mountain} />
       {trees.map((t, i) => <TreeInstances key={i} geometry={t.geo} material={mats.foliage} spots={t.spots} />)}
+      {nearSpots.length > 0 && <Suspense fallback={null}><AssetTrees spots={nearSpots} /></Suspense>}
       <Lamps />
     </group>
   )
