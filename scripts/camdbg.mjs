@@ -1,0 +1,17 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+const ctx = await b.newContext({ viewport: { width: 800, height: 500 } })
+await ctx.addInitScript(() => localStorage.setItem('world-listens.hint', '1'))
+const p = await ctx.newPage()
+p.on('pageerror', (e) => console.log('ERR', e.message))
+await p.goto('http://127.0.0.1:4173/?t=10&noclouds')
+await p.waitForFunction(() => (window.__frames ?? 0) > 20, null, { timeout: 240000 })
+const pos = () => p.evaluate(() => [window.__cam.position.toArray().map((v) => +v.toFixed(2)), window.__frames])
+console.log('home', await pos())
+await p.mouse.move(400, 300); await p.mouse.down(); for (let i = 0; i < 8; i++) await p.mouse.move(400 + i * 25, 300 + i * 10); await p.mouse.up()
+await p.mouse.wheel(0, 2000)
+await p.waitForTimeout(3000)
+console.log('moved', await pos())
+await p.click('[data-testid=rail-view]')
+for (let i = 0; i < 8; i++) { await p.waitForTimeout(1500); console.log('t', i, await pos()) }
+await b.close()

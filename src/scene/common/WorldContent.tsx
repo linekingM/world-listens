@@ -3,10 +3,10 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useEnv, useStyleDef } from './EnvContext'
 import {
-  buildCity, buildHouse, buildIsland, buildLamp, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
+  buildCity, buildLamp, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
 } from '../../world/geometry'
-import { ISLANDS, cityBuildings, lampSpots, terrainHeight, treeSpots, type IslandSpec } from '../../world/layout'
-import { Waterfall } from './Waterfall'
+import { cityBuildings, lampSpots, terrainHeight, treeSpots } from '../../world/layout'
+import { getMaterial } from './materials'
 import { smoothstep } from '../../lib/random'
 
 const VARIANTS = 3
@@ -34,52 +34,13 @@ function TreeInstances({ geometry, material, spots }: { geometry: THREE.BufferGe
   return <instancedMesh ref={ref} args={[geometry, material, spots.length]} castShadow receiveShadow frustumCulled={false} />
 }
 
-function islandTopY(spec: IslandSpec, x: number, z: number) {
-  const r2 = (x * x + z * z) / Math.pow(spec.radius * 0.85, 2)
-  return spec.radius * 0.16 * Math.sqrt(Math.max(0, 1 - r2)) - 0.15
-}
-
-function FloatingIsland({ spec, index }: { spec: IslandSpec; index: number }) {
-  const style = useStyleDef()
-  const opts = useMemo(() => ({ lowPoly: style.lowPoly, palette: style.palette }), [style])
-  const group = useRef<THREE.Group>(null!)
-  const geo = useMemo(() => buildIsland(spec, opts), [spec, opts])
-  const houseGeos = useMemo(() => spec.houses.map((h, i) => buildHouse(h.kind, index + i, opts)), [spec, opts, index])
-  const treeGeo = useMemo(() => buildTree(0, opts, index), [opts, index])
-  const rock = useMemo(() => style.makeMaterial('rock'), [style])
-  const bld = useMemo(() => style.makeMaterial('building'), [style])
-  const fol = useMemo(() => style.makeMaterial('foliage'), [style])
-  useFrame((s) => {
-    const t = s.clock.elapsedTime
-    group.current.position.y = spec.pos[1] + Math.sin(t * 0.35 + index * 2) * 0.8
-    group.current.rotation.y = Math.sin(t * 0.08 + index) * 0.04
-  })
-  // waterfall spills toward the default camera
-  const wf = useMemo(() => {
-    const dir = new THREE.Vector2(3 - spec.pos[0], 26 - spec.pos[2]).normalize()
-    return { x: dir.x * spec.radius * 0.8, z: dir.y * spec.radius * 0.8, rot: Math.atan2(dir.x, dir.y) }
-  }, [spec])
-  return (
-    <group ref={group} position={spec.pos}>
-      <mesh geometry={geo} material={rock} castShadow receiveShadow />
-      {spec.houses.map((h, i) => (
-        <mesh key={i} geometry={houseGeos[i]} material={bld} position={[h.x, islandTopY(spec, h.x, h.z), h.z]} rotation-y={h.rot} scale={h.s} castShadow receiveShadow />
-      ))}
-      {spec.trees.map((t, i) => (
-        <mesh key={i} geometry={treeGeo} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow receiveShadow />
-      ))}
-      {spec.waterfall && <Waterfall position={[wf.x, 0.2, wf.z]} rotationY={wf.rot} height={30} />}
-    </group>
-  )
-}
-
 function Lamps() {
   const style = useStyleDef()
   const env = useEnv()
   const spots = useMemo(() => lampSpots(), [])
   const opts = useMemo(() => ({ lowPoly: style.lowPoly, palette: style.palette }), [style])
   const pole = useMemo(() => buildLamp(opts), [opts])
-  const poleMat = useMemo(() => style.makeMaterial('prop'), [style])
+  const poleMat = getMaterial(style, 'prop')
   const bulbMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false }), [])
   const poolMat = useMemo(() => {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128
@@ -133,10 +94,10 @@ export function WorldContent() {
   }, [opts, spots])
 
   const mats = useMemo(() => ({
-    terrain: style.makeMaterial('terrain'),
+    terrain: getMaterial(style, 'terrain'),
     road: style.makeMaterial('road'),
-    foliage: style.makeMaterial('foliage'),
-    city: style.makeMaterial('city'),
+    foliage: getMaterial(style, 'foliage'),
+    city: getMaterial(style, 'city'),
     mountain: style.makeMaterial('mountain'),
   }), [style])
 
@@ -164,7 +125,6 @@ export function WorldContent() {
       <mesh geometry={city} material={mats.city} castShadow receiveShadow />
       <mesh geometry={mountains} material={mats.mountain} />
       {trees.map((t, i) => <TreeInstances key={i} geometry={t.geo} material={mats.foliage} spots={t.spots} />)}
-      {ISLANDS.map((s, i) => <FloatingIsland key={i} spec={s} index={i} />)}
       <Lamps />
     </group>
   )

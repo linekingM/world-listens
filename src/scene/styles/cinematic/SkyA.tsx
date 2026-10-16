@@ -25,6 +25,9 @@ export function SkyA() {
       uT: { value: 0 },
       uGolden: { value: 0 },
       uSunTint: { value: new THREE.Color('#ffb070') },
+      uCover: { value: 0 },
+      uMist: { value: 0 },
+      uFogCol: { value: new THREE.Color('#dde6ee') },
     })
     u.turbidity.value = 3.2
     u.rayleigh.value = 2.1
@@ -38,7 +41,7 @@ export function SkyA() {
     u.cloudSpeed.value = 0.00003
     const mat = s.material
     mat.fragmentShader = mat.fragmentShader
-      .replace('uniform float time;', `uniform float time; uniform float uGain; uniform float uNight; uniform vec3 uNightTop; uniform vec3 uNightHorizon; uniform float uT; uniform float uGolden; uniform vec3 uSunTint;
+      .replace('uniform float time;', `uniform float time; uniform float uGain; uniform float uNight; uniform vec3 uNightTop; uniform vec3 uNightHorizon; uniform float uT; uniform float uGolden; uniform vec3 uSunTint; uniform float uCover; uniform float uMist; uniform vec3 uFogCol;
         float hash13(vec3 p){ p = fract(p*0.1031); p += dot(p, p.zyx+31.32); return fract((p.x+p.y)*p.z); }`)
       .replace('gl_FragColor = vec4( texColor, 1.0 );', `
         texColor *= uGain;
@@ -51,12 +54,17 @@ export function SkyA() {
         float disc2 = smoothstep(0.99955, 0.99975, cosTheta);
         float halo = pow(max(cosTheta, 0.0), 180.0) * 0.6 + pow(max(cosTheta, 0.0), 1400.0) * 1.5;
         float vis = smoothstep(-0.02, 0.01, vSunDirection.y);
-        texColor += uSunTint * (disc2 * 8.0 + halo * (0.35 + uGolden * 0.6)) * vis;
+        texColor += uSunTint * (disc2 * 8.0 * (1.0 - uCover * 0.85) + halo * (0.35 + uGolden * 0.6) * (1.0 - uCover * 0.5)) * vis;
+        // overcast: flatten towards a soft luminous grey; mist: fade the lower sky into the fog colour
+        float lum = dot(texColor, vec3(0.299, 0.587, 0.114));
+        vec3 overcast = vec3(lum) * vec3(0.96, 0.99, 1.04) * (0.85 + 0.25 * smoothstep(-0.1, 0.6, direction.y));
+        texColor = mix(texColor, overcast, uCover * 0.75);
+        texColor = mix(texColor, uFogCol, uMist * exp(-max(direction.y, 0.0) * 3.5) * 0.9);
         vec3 nightCol = mix(uNightHorizon, uNightTop, pow(clamp(direction.y, 0.0, 1.0), 0.6));
         vec3 sp = direction * 260.0; vec3 cell = floor(sp);
         float h = hash13(cell);
         float star = step(0.9965, h) * smoothstep(0.5, 0.0, length(fract(sp) - 0.5)) * (0.6 + 0.4*sin(uT*2.0 + h*80.0));
-        nightCol += vec3(0.9, 0.95, 1.0) * star * 2.5 * smoothstep(0.02, 0.25, direction.y);
+        nightCol += vec3(0.9, 0.95, 1.0) * star * 2.5 * smoothstep(0.02, 0.25, direction.y) * (1.0 - uCover);
         texColor = mix(texColor, nightCol, uNight);
         gl_FragColor = vec4( texColor, 1.0 );`)
     mat.depthWrite = false
@@ -72,7 +80,12 @@ export function SkyA() {
     u.turbidity.value = 3.0 + env.sun.golden * 2.5
     u.uGolden.value = env.sun.golden
     u.uSunTint.value.copy(env.light.sun).lerp(WHITE, 0.3)
-    u.uGain.value = 0.5 + env.sun.golden * 0.15
+    u.uGain.value = (0.5 + env.sun.golden * 0.15) * (1 - env.weather.cover * 0.12)
+    u.uCover.value = Math.max(0, env.weather.cover - 0.25) / 0.75
+    u.uMist.value = env.weather.mist
+    u.uFogCol.value.copy((st.scene.fog as THREE.FogExp2 | null)?.color ?? WHITE)
+    u.cloudCoverage.value = 0.25 + env.weather.cover * 0.55
+    u.cloudDensity.value = 0.3 + env.weather.cover * 0.5
   })
   return <primitive object={sky} />
 }

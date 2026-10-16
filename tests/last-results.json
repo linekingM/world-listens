@@ -1,0 +1,102 @@
+[
+  {
+    "name": "loads without errors, no style switcher, HUD present",
+    "ok": true,
+    "s": 0.054
+  },
+  {
+    "name": "HUD covers < 12% of the screen (desktop)",
+    "ok": true,
+    "s": 0.013
+  },
+  {
+    "name": "time dial: click → time, keyboard → +15min, sun/light follow",
+    "ok": true,
+    "s": 44.157
+  },
+  {
+    "name": "drag the sun in the sky changes time",
+    "ok": true,
+    "s": 58.661
+  },
+  {
+    "name": "weather transitions gradually (clear → cloudy → mist → clear)",
+    "ok": true,
+    "s": 44.184
+  },
+  {
+    "name": "add object: pick 岩石 then click the ground",
+    "ok": true,
+    "s": 3.972
+  },
+  {
+    "name": "move: drag the selected object across the ground",
+    "ok": true,
+    "s": 17.506
+  },
+  {
+    "name": "rotate + scale via toolbar, F/R shortcuts",
+    "ok": true,
+    "s": 1.933
+  },
+  {
+    "name": "delete via toolbar; click empty space deselects",
+    "ok": true,
+    "s": 1.128
+  },
+  {
+    "name": "drag a floating island in the air",
+    "ok": true,
+    "s": 12.468
+  },
+  {
+    "name": "drag a cloud, then turn a cloud into an island",
+    "ok": true,
+    "s": 19.214
+  },
+  {
+    "name": "gravity: weightless lifts objects, chip shows, restore lands them",
+    "ok": true,
+    "s": 56.418
+  },
+  {
+    "name": "camera orbit is limited and reset returns home",
+    "ok": true,
+    "s": 31.862
+  },
+  {
+    "name": "save locally, change world, load save back",
+    "ok": true,
+    "s": 5.224
+  },
+  {
+    "name": "export PNG downloads an image",
+    "ok": true,
+    "s": 4.473
+  },
+  {
+    "name": "share link round-trips the whole world",
+    "ok": true,
+    "s": 87.026
+  },
+  {
+    "name": "reset world (two-step confirm)",
+    "ok": true,
+    "s": 4.756
+  },
+  {
+    "name": "no runtime errors during the whole desktop session",
+    "ok": true,
+    "s": 0
+  },
+  {
+    "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
+    "ok": true,
+    "s": 39.082
+  },
+  {
+    "name": "first-visit onboarding hint shows once and dismisses",
+    "ok": true,
+    "s": 16.73
+  }
+]

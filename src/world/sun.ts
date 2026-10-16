@@ -47,9 +47,10 @@ export function timeLabel(hour: number) {
 export function phaseName(hour: number) {
   if (hour < 4.5 || hour >= 20.5) return '星夜'
   if (hour < 6.5) return '黎明'
-  if (hour < 9.5) return '清晨'
-  if (hour < 15.5) return '正午'
-  if (hour < 17.5) return '午后'
+  if (hour < 8.5) return '清晨'
+  if (hour < 11) return '上午'
+  if (hour < 13.5) return '正午'
+  if (hour < 17) return '午后'
   if (hour < 19.6) return '黄昏'
   return '暮色'
 }

@@ -461,3 +461,52 @@ export function buildLamp({ lowPoly }: BuildOpts) {
   const g = mergeGeometries([pole, arm].map((p) => normalizeAttrs(p)))!
   return g
 }
+
+// ───────────────────────────── rocks & street furniture ─────────────────────────────
+export function buildRock(variant: number, { lowPoly, palette }: BuildOpts) {
+  const g0 = new THREE.IcosahedronGeometry(1, lowPoly ? 1 : 2)
+  const g = g0.toNonIndexed()
+  const pos = g.getAttribute('position')
+  const v = new THREE.Vector3()
+  const sx = [1.25, 0.9, 1.5][variant % 3], sy = [0.75, 1.05, 0.55][variant % 3]
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i)
+    const n = fbm(v.x * 1.3 + variant * 4, v.y * 1.3 + v.z * 1.1, 3)
+    // chunky facets: quantise the displacement
+    const k = 0.72 + Math.round(n * 6) / 6 * 0.55
+    pos.setXYZ(i, v.x * k * sx, Math.max(v.y * k * sy, -0.25) + 0.25 * sy, v.z * k)
+  }
+  g.computeVertexNormals()
+  const rock = col(palette.rock), dark = col(palette.rockDark), moss = col(palette.grassA)
+  return setColors(g, (p, n, o) => {
+    o.copy(rock).lerp(dark, smoothstep(0.6, -0.2, p.y) * 0.5 + noise2(p.x * 3, p.z * 3) * 0.2)
+    o.lerp(moss, smoothstep(0.55, 0.9, n.y) * 0.45)
+  })
+}
+
+export function buildBench({ lowPoly }: BuildOpts) {
+  const wood = col('#a8744a'), iron = col('#33383f')
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < 3; i++) {
+    const slat = new THREE.BoxGeometry(2.2, 0.07, 0.16)
+    slat.translate(0, 0.52, -0.2 + i * 0.2)
+    parts.push(solidColor(slat, C.copy(wood).multiplyScalar(0.9 + i * 0.06)))
+  }
+  for (let i = 0; i < 2; i++) {
+    const back = new THREE.BoxGeometry(2.2, 0.14, 0.06)
+    back.translate(0, 0.78 + i * 0.22, -0.34)
+    back.rotateX(0)
+    parts.push(solidColor(back, wood))
+  }
+  for (const x of [-0.95, 0.95]) {
+    const leg = new THREE.BoxGeometry(0.08, 0.52, 0.5)
+    leg.translate(x, 0.26, -0.05)
+    parts.push(solidColor(leg, iron))
+    const up = new THREE.BoxGeometry(0.07, 0.62, 0.07)
+    up.translate(x, 0.82, -0.36)
+    parts.push(solidColor(up, iron))
+  }
+  let g = mergeGeometries(parts.map((p) => normalizeAttrs(p)))!
+  if (lowPoly) g = facet(g)
+  return g
+}

@@ -114,26 +114,55 @@ const THREE_DEG = 180 / Math.PI
 /** azimuth (deg) of the ~18:30 sun as seen from the hero camera */
 const SUNSET_VIEW_AZ = 18
 
+/** Small islands for user-created / cloud-born islands (variants 3..5). */
+export const SMALL_ISLANDS: IslandSpec[] = [
+  { pos: [0, 0, 0], radius: 6.5, depth: 11, seed: 31, houses: [{ x: 0, z: 0, rot: 0.3, s: 0.9, kind: 'house' }], trees: [{ x: 3.5, z: 1.5, s: 0.7 }, { x: -3, z: -2, s: 0.6 }] },
+  { pos: [0, 0, 0], radius: 5.5, depth: 9, seed: 37, houses: [], trees: [{ x: 0, z: 0, s: 1 }, { x: 2.8, z: -1.5, s: 0.6 }, { x: -2.5, z: 1.8, s: 0.7 }] },
+  { pos: [0, 0, 0], radius: 6, depth: 12, seed: 43, waterfall: true, houses: [{ x: -0.5, z: -0.5, rot: 1.1, s: 0.8, kind: 'tower' }], trees: [{ x: 3, z: 2, s: 0.6 }] },
+]
+
+export function islandSpec(variant: number): IslandSpec {
+  return variant < ISLANDS.length ? ISLANDS[variant] : SMALL_ISLANDS[(variant - ISLANDS.length) % SMALL_ISLANDS.length]
+}
+
 export interface CloudSpec { pos: [number, number, number]; scale: number; seed: number }
 
-export function cloudSpecs(): CloudSpec[] {
+const keepSunsetWindow = (c: CloudSpec) => {
+  const az = THREE_DEG * Math.atan2(c.pos[0] - 8, -(c.pos[2] - 38))
+  return Math.abs(az - SUNSET_VIEW_AZ) > 10 || c.pos[1] > 115
+}
+
+/** Static far cloud banks + a low "sea of clouds" around the mountain feet (scenery, driven by weather). */
+export function horizonClouds(): CloudSpec[] {
   const r = rng(99)
   const out: CloudSpec[] = []
-  // horizon banks behind the city
   for (let i = 0; i < 9; i++) {
     const x = -420 + i * 105 + r() * 40
-    const c: CloudSpec = { pos: [x, 55 + r() * 35, -620 - r() * 120], scale: 2.2 + r() * 1.2, seed: i }
-    out.push(c)
+    out.push({ pos: [x, 60 + r() * 35, -640 - r() * 120], scale: 2.2 + r() * 1.2, seed: i })
   }
-  // mid layer
+  return out.filter(keepSunsetWindow)
+}
+
+/** Low, flat cloud sea lying in the far valleys beyond the city. */
+export function cloudSea(): CloudSpec[] {
+  const r = rng(321)
+  const out: CloudSpec[] = []
+  for (let i = 0; i < 12; i++) out.push({ pos: [-650 + i * 120 + r() * 50, 10 + r() * 8, -560 - r() * 260], scale: 2.4 + r() * 1.0, seed: 60 + i })
+  return out
+}
+
+/** Interactive clouds the user can drag (seeded into the world document). */
+export function heroClouds(): CloudSpec[] {
+  const r = rng(77)
+  const out: CloudSpec[] = []
   for (let i = 0; i < 7; i++) out.push({ pos: [-260 + i * 85 + r() * 30, 85 + r() * 30, -300 - r() * 120], scale: 1.2 + r() * 0.8, seed: 20 + i })
-  // a few high, nearer clouds for parallax
   for (let i = 0; i < 3; i++) out.push({ pos: [-150 + i * 140 + r() * 30, 120 + r() * 20, -200 - r() * 60], scale: 0.9 + r() * 0.4, seed: 40 + i })
-  // keep a clear window where the evening sun sets (seen from the hero camera)
-  return out.filter((c) => {
-    const az = THREE_DEG * Math.atan2(c.pos[0] - 8, -(c.pos[2] - 38))
-    return Math.abs(az - SUNSET_VIEW_AZ) > 10 || c.pos[1] > 115
-  })
+  return out.filter(keepSunsetWindow)
+}
+
+/** Legacy: all clouds (used by the B/C prototype styles). */
+export function cloudSpecs(): CloudSpec[] {
+  return [...horizonClouds(), ...heroClouds()]
 }
 
 /** Street lamps along the road (they glow at night). */
