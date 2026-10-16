@@ -44,6 +44,7 @@ export const fxUniforms = {
   uSunCol: { value: new THREE.Color(1, 1, 1) },
   uGlint: { value: 0 },
   uLeafGlow: { value: 1 },
+  uValley: { value: 0.3 },
   uCloudShadow: { value: 0.3 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) },
 }

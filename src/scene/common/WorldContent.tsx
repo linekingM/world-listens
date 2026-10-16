@@ -48,7 +48,7 @@ function Lamps() {
     const cv = document.createElement('canvas'); cv.width = cv.height = 128
     const g = cv.getContext('2d')!
     const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64)
-    grd.addColorStop(0, 'rgba(255,214,150,0.9)'); grd.addColorStop(0.4, 'rgba(255,190,120,0.35)'); grd.addColorStop(1, 'rgba(255,180,110,0)')
+    for (let k = 0; k <= 12; k++) { const t = k / 12; grd.addColorStop(t, `rgba(255,${205 - t * 25},${145 - t * 30},${(0.5 * Math.exp(-t * t * 5.5) * (1 - t)).toFixed(3)})`) }
     g.fillStyle = grd; g.fillRect(0, 0, 128, 128)
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace
     return new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })
@@ -65,7 +65,7 @@ function Lamps() {
   useFrame(() => {
     const on = smoothstep(2, -6, env.sun.elevation)
     bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 2.6)
-    poolMat.opacity = on * 0.8
+    poolMat.opacity = on * 0.75
     poolMat.visible = on > 0.01
     // in mist the lamps bloom into soft lantern halos
     const m = env.weather.mist
@@ -83,7 +83,7 @@ function Lamps() {
           <group key={i} position={[l.x, y, l.z]} rotation-y={ang}>
             <mesh geometry={pole} material={poleMat} castShadow />
             <mesh position={[-0.82, 4.05, 0]} material={bulbMat}><sphereGeometry args={[0.13, 8, 6]} /></mesh>
-            <mesh position={[-1.8, 0.1, 0]} rotation-x={-Math.PI / 2} material={poolMat}><planeGeometry args={[7, 7]} /></mesh>
+            <mesh position={[-1.8, 0.1, 0]} rotation-x={-Math.PI / 2} material={poolMat}><circleGeometry args={[5.5, 28]} /></mesh>
           </group>
         )
       })}
@@ -133,7 +133,7 @@ export function WorldContent() {
   }, [mats, windows, facade])
   useFrame(() => {
     const m = mats.city as THREE.MeshStandardMaterial
-    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 0.6
+    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 0.42
   })
 
   useEffect(() => () => {

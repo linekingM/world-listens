@@ -46,12 +46,13 @@ export function addTerrainFx(mat: THREE.Material) {
     s.uniforms.uTime = fxUniforms.uTime
     s.uniforms.uCloudShadow = fxUniforms.uCloudShadow
     s.uniforms.uSunDir = fxUniforms.uSunDir
+    s.uniforms.uValley = fxUniforms.uValley
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWorldP;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWorldP = (modelMatrix * vec4(transformed, 1.0)).xyz;')
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>
-        varying vec3 vWorldP; uniform float uTime; uniform float uCloudShadow; uniform vec3 uSunDir;
+        varying vec3 vWorldP; uniform float uTime; uniform float uCloudShadow; uniform vec3 uSunDir; uniform float uValley;
         float th(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float tn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
           return mix(mix(th(i), th(i+vec2(1,0)), f.x), mix(th(i+vec2(0,1)), th(i+vec2(1,1)), f.x), f.y); }`)
@@ -73,6 +74,15 @@ export function addTerrainFx(mat: THREE.Material) {
           reflectedLight.directDiffuse *= 1.0 - shadow;
           reflectedLight.directSpecular *= 1.0 - shadow;
         }`)
+      .replace('#include <fog_fragment>', `#include <fog_fragment>
+        #ifdef USE_FOG
+        {
+          // low-lying haze pooling in the valleys, thicker at golden hour / in mist
+          float dCam = length(vWorldP.xz - cameraPosition.xz);
+          float valley = smoothstep(7.0, -1.5, vWorldP.y) * smoothstep(25.0, 160.0, dCam);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, clamp(valley * uValley, 0.0, 0.6));
+        }
+        #endif`)
   })
 }
 

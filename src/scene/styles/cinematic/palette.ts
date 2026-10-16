@@ -16,6 +16,7 @@ export const lightKeysA: LightKey[] = [
   { elev: -4, sun: '#ff8a5a', sunI: 0.0, skyTop: '#26386b', skyHorizon: '#d88468', hemiSky: '#5f6a9a', hemiGround: '#2e2a33', hemiI: 0.6, fog: '#6f6886' },
   { elev: 1, sun: '#ff9248', sunI: 1.7, skyTop: '#4d77b3', skyHorizon: '#ffb07a', hemiSky: '#9fb3df', hemiGround: '#6b5a48', hemiI: 1.1, fog: '#e2ac88' },
   { elev: 7, sun: '#ffbe72', sunI: 2.9, skyTop: '#5b8fd0', skyHorizon: '#ffd3a2', hemiSky: '#a8c4ec', hemiGround: '#76684a', hemiI: 1.15, fog: '#eccdb0' },
+  { elev: 14, sun: '#ffc888', sunI: 3.25, skyTop: '#4f86d0', skyHorizon: '#f3dcbc', hemiSky: '#b0c4e4', hemiGround: '#7a6e44', hemiI: 0.95, fog: '#e8d6bc' },
   { elev: 26, sun: '#ffdcaa', sunI: 3.4, skyTop: '#4f8ad8', skyHorizon: '#d6e4f0', hemiSky: '#a9c6ec', hemiGround: '#6c7048', hemiI: 0.92, fog: '#c8daec' },
   { elev: 64, sun: '#fff0d8', sunI: 3.5, skyTop: '#3c7ed6', skyHorizon: '#c5dcf0', hemiSky: '#a6c4ec', hemiGround: '#666a44', hemiI: 0.82, fog: '#b8d0ea' },
 ]

@@ -534,12 +534,12 @@ export function windowTexture() {
   const r = rng(5)
   for (let y = 0; y < n; y++) {
     // lights come in runs along a floor (apartments / offices), most floors dark
-    const floorBusy = r() < 0.45 ? 0.32 : 0.05
+    const floorBusy = r() < 0.35 ? 0.24 : 0.03
     let on = false
     for (let x = 0; x < n; x++) {
       if (r() < 0.3) on = r() < floorBusy
       const warm = r()
-      ctx.fillStyle = on ? `rgb(255,${180 + warm * 60},${100 + warm * 80})` : '#0b0d12'
+      ctx.fillStyle = on ? (warm > 0.85 ? `rgb(${190 + warm * 30},${215},${235})` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`) : '#0b0d12'
       ctx.fillRect(x * c + 3, y * c + 4, c - 6, c - 7)
     }
   }
