@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { MaterialRole, StyleDef } from '../styles/types'
-import { addLeafGlow, addTerrainFx, addWind, addWindowGlints } from './materialFx'
+import { addFogScale, addLeafGlow, addTerrainFx, addWind, addWindowGlints } from './materialFx'
 
 const cache = new Map<string, THREE.Material>()
 
@@ -12,6 +12,7 @@ export function getMaterial(style: StyleDef, role: MaterialRole): THREE.Material
     m = style.makeMaterial(role)
     if (role === 'terrain') addTerrainFx(m)
     if (role === 'foliage') { addWind(m, 0.07, 7); addLeafGlow(m) }
+    if (role === 'rock') { addFogScale(m, 0.62); addLeafGlow(m, 0.6) }
     if (role === 'city' && m instanceof THREE.MeshStandardMaterial) addWindowGlints(m)
     cache.set(key, m)
   }

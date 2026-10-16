@@ -108,8 +108,8 @@ export function addWindowGlints(mat: THREE.MeshStandardMaterial) {
 }
 
 /** Leaves: soft rim + back-lit translucency (light glowing through the canopy edges toward a low sun). */
-export function addLeafGlow(mat: THREE.Material) {
-  return chain(mat, 'leafglow', (s) => {
+export function addLeafGlow(mat: THREE.Material, k = 1) {
+  return chain(mat, 'leafglow' + k, (s) => {
     s.uniforms.uSunView = fxUniforms.uSunView
     s.uniforms.uSunCol = fxUniforms.uSunCol
     s.uniforms.uLeafGlow = fxUniforms.uLeafGlow
@@ -121,7 +121,21 @@ export function addLeafGlow(mat: THREE.Material) {
           float rim = pow(1.0 - clamp(abs(dot(normal, Vv)), 0.0, 1.0), 2.2);
           float back = pow(max(dot(-Vv, normalize(uSunView)), 0.0), 3.0);
           float facing = max(dot(normal, normalize(uSunView)), 0.0);
-          totalEmissiveRadiance += diffuseColor.rgb * uSunCol * uLeafGlow * (rim * (0.12 + facing * 0.25 + back * 1.1) + back * 0.18);
+          totalEmissiveRadiance += diffuseColor.rgb * uSunCol * uLeafGlow * ${k.toFixed(2)} * (rim * (0.12 + facing * 0.25 + back * 1.1) + back * 0.18);
         }`)
+  })
+}
+
+/** Scale fog on one material (keeps floating islands readable as silhouettes in golden haze). */
+export function addFogScale(mat: THREE.Material, k: number) {
+  return chain(mat, 'fogk' + k, (s) => {
+    s.fragmentShader = s.fragmentShader.replace('#include <fog_fragment>', `#ifdef USE_FOG
+      #ifdef FOG_EXP2
+        float fogFactorK = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+      #else
+        float fogFactorK = smoothstep(fogNear, fogFar, vFogDepth);
+      #endif
+      gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactorK * ${k.toFixed(2)});
+    #endif`)
   })
 }

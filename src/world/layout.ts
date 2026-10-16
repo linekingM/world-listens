@@ -38,7 +38,7 @@ export function treeSpots(): TreeSpot[] {
     for (const side of [-1, 1]) {
       if (r() < 0.18) continue
       const x = roadX(z) + side * (ROAD_WIDTH / 2 + 3.2 + r() * 2.5)
-      out.push({ x, z: z + r() * 2, y: 0, s: 1.05 + r() * 0.45, kind: r() < 0.75 ? 0 : 2, tint: r(), rot: r() * 6.28 })
+      out.push({ x, z: z + r() * 2, y: 0, s: 1.05 + r() * 0.45, kind: r() < 0.62 ? 0 : r() < 0.7 ? 2 : 1, tint: r(), rot: r() * 6.28 })
     }
   }
   // groves in the meadows

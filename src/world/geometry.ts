@@ -4,7 +4,7 @@
  * (low‑poly) output.
  */
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { fbm, noise2, rng, smoothstep, clamp } from '../lib/random'
 import { roadX, terrainHeight, ROAD_START, ROAD_END, ROAD_WIDTH, type Building, type IslandSpec } from './layout'
 
@@ -144,13 +144,16 @@ function ribbon(offsetA: number, offsetB: number, zFrom: number, zTo: number, st
   return g
 }
 
+const MOSS = new THREE.Color('#5f7038')
 export function buildRoad({ palette }: BuildOpts) {
   const hw = ROAD_WIDTH / 2
   const road = ribbon(-hw, hw, ROAD_START, ROAD_END, 1, 0.06)
   const asphalt = col(palette.road)
   setColors(road, (p, _n, o) => {
-    const v = fbm(p.x * 0.6, p.z * 0.6, 2)
-    o.copy(asphalt).multiplyScalar(0.88 + v * 0.24)
+    // mottled flagstone: large soft patches + fine grain, mossy toward the edges
+    const v = fbm(p.x * 0.35, p.z * 0.35, 3)
+    const edge = smoothstep(hw - 1.6, hw, Math.abs(p.x - roadX(p.z)))
+    o.copy(asphalt).multiplyScalar(0.84 + v * 0.3).lerp(MOSS, edge * 0.35 + smoothstep(0.62, 0.8, v) * 0.18)
   })
   const line = ribbon(-0.09, 0.09, ROAD_START, ROAD_END, 1, 0.075, [3.2, 4.2])
   solidColor(line, palette.roadLine)
@@ -160,7 +163,8 @@ export function buildRoad({ palette }: BuildOpts) {
   const curbR = ribbon(hw, hw + 0.9, ROAD_START, ROAD_END, 1, 0.12)
   for (const g of [edgeL, edgeR]) solidColor(g, palette.roadLine)
   for (const g of [curbL, curbR]) solidColor(g, palette.curb)
-  const markings = mergeGeometries([line, edgeL, edgeR].map((g) => normalizeAttrs(g, false)))
+  void line
+  const markings = mergeGeometries([edgeL, edgeR].map((g) => normalizeAttrs(g, false)))
   const curbs = mergeGeometries([curbL, curbR].map((g) => normalizeAttrs(g, false)))
   return { road, markings, curbs }
 }
@@ -243,8 +247,8 @@ export function buildTree(kind: 0 | 1 | 2, { lowPoly, palette }: BuildOpts, vari
       parts.push(solidColor(branch(0, 0, 0, 0.1, 2.2, 0, 0.36, 0.26, seg), trunkC))
       const limbs: [number, number, number][] = [[1.6, 3.6, 0.4], [-1.4, 3.4, 0.8], [0.2, 3.9, -1.5]]
       for (const l of limbs) parts.push(solidColor(branch(0.1, 2.0, 0, l[0], l[1], l[2], 0.2, 0.1, 5), trunkC))
-      addLeaves(clump(0, 4.6, 0, 1.9, 5, 1 + variant, detail, lumpy, 0.8), leaf, [0, 4, 0], 2.5, 6, 11)
-      for (const [i, l] of limbs.entries()) addLeaves(clump(l[0] * 1.15, l[1] + 0.3, l[2] * 1.15, 1.35, 4, 20 + i + variant, detail, lumpy, 0.85), leaf, [0, 4, 0], 2.5, 6, 30 + i)
+      addLeaves(clump(0, 4.8, 0, 2.0, 6, 1 + variant, detail, lumpy, 1.0), leaf, [0, 4, 0], 2.5, 6, 11)
+      for (const [i, l] of limbs.entries()) addLeaves(clump(l[0] * 1.15, l[1] + 0.5, l[2] * 1.1, 1.4, 4, 20 + i + variant, detail, lumpy, 1.0), leaf, [0, 4, 0], 2.5, 6, 30 + i)
     } else if (v === 1) {
       // tall layered elm: straight trunk, stacked tiers of clumps (gaps show sky)
       parts.push(solidColor(branch(0, 0, 0, 0, 3.6, 0, 0.24, 0.15, seg), trunkC))
@@ -371,13 +375,18 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
     // horizontal strata grooves (thin inset bands) so the rock reads as layered sediment
     const band = Math.abs(Math.sin(sy * 0.55 + spec.seed))
     taper *= 1 - smoothstep(0.78, 1, band) * 0.12 * smoothstep(0.02, 0.15, t)
+    // fine rocky relief so smooth shading still reads as stone
+    taper *= 1 + (fbm(ang * 5 + spec.seed, sy * 0.45, 3) - 0.5) * 0.14 * smoothstep(0.02, 0.2, t)
     const k = rad > 1e-4 && Math.sqrt(1 - t * t) > 1e-4 ? 1 / Math.sqrt(1 - t * t) : 0
     pos.setXYZ(i, v.x * k * taper * R * rim + shiftX, sy, v.z * k * taper * R * rim + shiftZ)
   }
-  g.computeVertexNormals()
+  // weld duplicated vertices → smooth normals (soft cinematic rock instead of crude flat facets)
+  g.deleteAttribute('normal'); if (g.getAttribute('uv')) g.deleteAttribute('uv')
+  const gs = mergeVertices(g, 1e-3)
+  gs.computeVertexNormals()
   const grass = col(palette.grassA), grass2 = col(palette.grassB), dirt = col(palette.dirt), rock = col(palette.rock), rockD = col(palette.rockDark)
   const sand = col('#d6b48c'), slate = col('#5d6c7c')
-  setColors(g, (p, n, o) => {
+  setColors(gs, (p, n, o) => {
     if (p.y > -0.25 && n.y > 0.2) {
       o.copy(grass).lerp(grass2, fbm(p.x * 0.3 + spec.seed, p.z * 0.3, 2))
     } else {
@@ -421,7 +430,7 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
       extra.push(solidColor(tip, vineTip))
     }
   }
-  const merged = mergeGeometries([normalizeAttrs(g), ...extra.map((e) => normalizeAttrs(e))])!
+  const merged = mergeGeometries([normalizeAttrs(gs), ...extra.map((e) => normalizeAttrs(e))])!
   return lowPoly ? facet(merged) : merged
 }
 

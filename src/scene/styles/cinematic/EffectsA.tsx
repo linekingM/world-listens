@@ -17,7 +17,7 @@ function SunProxy({ onMesh }: { onMesh: (m: THREE.Mesh | null) => void }) {
     const mesh = (m.userData.mesh as THREE.Mesh | undefined)
     if (mesh) { mesh.position.copy(camera.position).addScaledVector(env.sun.dir, 900); mesh.visible = k > 0.03; mesh.scale.setScalar(0.4 + k * 0.6) }
   })
-  return <mesh ref={(r) => { sunMat.userData.mesh = r; onMesh(r) }} material={sunMat} frustumCulled={false} raycast={() => null}><sphereGeometry args={[24, 20, 14]} /></mesh>
+  return <mesh ref={(r) => { sunMat.userData.mesh = r; onMesh(r) }} material={sunMat} frustumCulled={false} raycast={() => null}><sphereGeometry args={[17, 20, 14]} /></mesh>
 }
 
 export function EffectsA() {
@@ -26,7 +26,7 @@ export function EffectsA() {
     <>
       <SunProxy onMesh={(m) => { if (m && m !== sun) setSun(m) }} />
       <EffectComposer multisampling={0} enableNormalPass={false}>
-        {sun ? <GodRays sun={sun} samples={36} density={0.96} decay={0.955} weight={0.28} exposure={0.25} clampMax={1} blur /> : <></>}
+        {sun ? <GodRays sun={sun} samples={36} density={0.96} decay={0.955} weight={0.24} exposure={0.18} clampMax={1} blur /> : <></>}
         <Bloom mipmapBlur luminanceThreshold={0.9} luminanceSmoothing={0.25} intensity={0.45} radius={0.6} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette offset={0.32} darkness={0.34} />

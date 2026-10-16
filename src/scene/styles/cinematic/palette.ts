@@ -4,7 +4,7 @@ import type { LightKey } from '../../../world/palette'
 export const paletteA: WorldPalette = {
   grassA: '#4a8a30', grassB: '#7aa83c', grassDry: '#a9a552', grassFar: '#86a77a',
   dirt: '#7a6248', rock: '#8d7c6c', rockDark: '#4c4450',
-  road: '#686e79', roadLine: '#e8e4d8', curb: '#b9b3a7',
+  road: '#a39581', roadLine: '#b4a78f', curb: '#7d8150',
   trunk: '#5a4332', leaf: ['#4c7a2c', '#6a8e34', '#3d6a33'], conifer: '#2e5938',
   wall: ['#f1e9dc', '#ecdcc6', '#f6f1e8'], roof: ['#b5553e', '#5b788b', '#a5653f'],
   cityA: '#d2d7dd', cityB: '#9faab8', cityTop: '#eef0f2',

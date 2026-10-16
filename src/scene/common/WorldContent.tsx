@@ -11,7 +11,7 @@ import { smoothstep } from '../../lib/random'
 
 const VARIANTS = 3
 /** weighted species mix: umbrella trees and birches are accents, not the norm */
-const variantOf = (kind: number, t: number) => kind === 0 ? (t < 0.5 ? 0 : t < 0.86 ? 1 : 2) : kind === 2 ? (t < 0.4 ? 0 : t < 0.7 ? 1 : 2) : Math.floor(t * 3)
+const variantOf = (kind: number, t: number) => kind === 0 ? (t < 0.48 ? 0 : t < 0.94 ? 1 : 2) : kind === 2 ? (t < 0.4 ? 0 : t < 0.7 ? 1 : 2) : Math.floor(t * 3)
 const TINT_WARM = new THREE.Color('#fff0c8'), TINT_COOL = new THREE.Color('#d6f0e6')
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler()
 
