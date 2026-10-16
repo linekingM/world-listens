@@ -17,7 +17,7 @@ function SunProxy({ onMesh }: { onMesh: (m: THREE.Mesh | null) => void }) {
     const mesh = (m.userData.mesh as THREE.Mesh | undefined)
     if (mesh) { mesh.position.copy(camera.position).addScaledVector(env.sun.dir, 900); mesh.visible = k > 0.03; mesh.scale.setScalar(0.4 + k * 0.6) }
   })
-  return <mesh ref={(r) => { sunMat.userData.mesh = r; onMesh(r) }} material={sunMat} frustumCulled={false}><sphereGeometry args={[24, 20, 14]} /></mesh>
+  return <mesh ref={(r) => { sunMat.userData.mesh = r; onMesh(r) }} material={sunMat} frustumCulled={false} raycast={() => null}><sphereGeometry args={[24, 20, 14]} /></mesh>
 }
 
 export function EffectsA() {
