@@ -11,3 +11,4 @@ node $S best/06-gravity-weightless "?t=17" "" "(()=>{const s=window.__world.getS
 node $S best/07-surprise-meteors "?t=22.5" "" "(()=>{const s=window.__world.getState();s.setWeather('starry');s.setGravity(0)})()" 5000
 node $S best/08-mobile-home "?t=17.8" m
 node $S best/09-mobile-edit "?t=10" m "(()=>{const s=window.__world.getState();s.select(s.objects.find(o=>o.type==='house').id)})()" 1000
+node $S best/10-wind-gust "?t=17.8" "" "(()=>{const s=window.__world.getState();let k=0;setInterval(()=>{k++;s.setTime(17.6+0.4*Math.abs(Math.sin(k*0.5)))},120)})()" 9000
