@@ -76,7 +76,7 @@ function useTreeModel(name: string) {
 const TINT_WARM = new THREE.Color('#fff4d8'), TINT_COOL = new THREE.Color('#e4f4e8')
 // the kit's leaf texture is a deep forest green; lift it towards the fresh spring palette of the meadow
 // muted olive/sage so the crowns sit in the soft clay world (no chartreuse); pines lifted out of near-black
-const LEAF_A = new THREE.Color(1.22, 1.18, 0.82), LEAF_B = new THREE.Color(1.36, 1.2, 0.74), PINE = new THREE.Color(1.25, 1.3, 1.1)
+const LEAF_A = new THREE.Color(1.12, 1.1, 0.86), LEAF_B = new THREE.Color(1.26, 1.13, 0.78), PINE = new THREE.Color(1.25, 1.3, 1.1)
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler()
 
 function ModelInstances({ name, spots, targetH, pine }: { name: string; spots: TreeSpot[]; targetH: number; pine?: boolean }) {
@@ -125,7 +125,8 @@ export function AssetTrees({ spots }: { spots: TreeSpot[] }) {
     const out: { name: string; spots: TreeSpot[]; h: number; pine?: boolean }[] = []
     const add = (names: string[], list: TreeSpot[], h: number, pine?: boolean) => names.forEach((n, i) => out.push({ name: n, spots: list.filter((s) => Math.floor(((s.tint * 13.7) % 1) * names.length) === i), h, pine }))
     // ~1 pine per 4 broadleaf near the path: the rest of the pine spots become broadleaf crowns
-    const isPine = (s: TreeSpot) => s.kind === 1 && ((s.tint * 29.1) % 1) < 0.4
+    // pines only in the mid-ground (no dark cropped firs in the corners)
+    const isPine = (s: TreeSpot) => s.kind === 1 && ((s.tint * 29.1) % 1) < 0.4 && Math.hypot(s.x - 8, s.z - 38) > 45
     add(BROADLEAF, spots.filter((s) => !isPine(s)), 7.6)
     add(PINES, spots.filter(isPine), 8, true)
     return out

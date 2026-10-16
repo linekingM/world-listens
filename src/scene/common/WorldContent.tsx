@@ -111,8 +111,8 @@ export function WorldContent() {
   const mountains = useMemo(() => buildMountains(opts), [opts])
   const allSpots = useMemo(() => treeSpots(), [])
   // near/mid trees use the hand-modelled CC0 assets; distant fogged groves keep the cheap procedural ones
-  // WIP: asset trees behind ?assets=1 until their rendering is verified
-  const useAssets = typeof location !== 'undefined' && new URLSearchParams(location.search).has('assets')
+  // on by default (won the side-by-side); ?assets=0 falls back to all-procedural trees
+  const useAssets = typeof location === 'undefined' || new URLSearchParams(location.search).get('assets') !== '0'
   // near = within ~65 m of the home camera and by the avenue; beyond that the cheap procedural trees take over (LOD by distance)
   const isNear = (s: { x: number; z: number }) => useAssets && Math.hypot(s.x - 8, s.z - 38) < 95 && s.z < 30 && Math.abs(s.x - roadX(s.z)) < 40
   // quality > quantity: keep ~55% of the near spots for the detailed asset trees, drop the rest entirely
