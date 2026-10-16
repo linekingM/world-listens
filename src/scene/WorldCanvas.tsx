@@ -14,6 +14,7 @@ import { SunHandle } from './common/SunHandle'
 import { Grass } from './common/Grass'
 import { GravityFX } from './common/GravityFX'
 import { CityHaze } from './common/CityHaze'
+import { NightMagic } from './common/NightMagic'
 
 const NO_CLOUDS = new URLSearchParams(window.location.search).has('noclouds')
 
@@ -40,6 +41,7 @@ export function WorldCanvas() {
           {styleId === 'a' && <CityHaze />}
           <WorldObjects />
           <GravityFX />
+          <NightMagic />
           <SunHandle />
           <InteractionController />
           {Extras && <Extras />}

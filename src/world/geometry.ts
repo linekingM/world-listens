@@ -345,7 +345,7 @@ export function buildCity(list: Building[], { lowPoly, palette }: BuildOpts) {
       const sideX = Math.abs(nor.getX(i)) > 0.5
       const sideY = Math.abs(nor.getY(i)) > 0.5
       const w = sideX ? bd.d : bd.w
-      uv.setXY(i, sideY ? 0 : uv.getX(i) * w / 3.2, sideY ? 0 : uv.getY(i) * bd.h / 3.4 + bd.tone * 7)
+      uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + bd.tone * 13.7) / 4, sideY ? 0 : (uv.getY(i) * bd.h / 3.4 + Math.floor(bd.tone * 97)) / 4)
     }
     const base = palette.cityTints ? C.set(palette.cityTints[Math.floor(bd.tone * palette.cityTints.length) % palette.cityTints.length]) : C.copy(a).lerp(b, bd.tone)
     const terr = terrainHeight(bd.x, bd.z)
@@ -383,19 +383,23 @@ function zeroUv(g: THREE.BufferGeometry) {
 
 /** Canvas window texture: lit windows in the (unused) map alpha, used as emissive mask. */
 export function windowTexture() {
-  const s = 256
+  const s = 512, n = 32, c = s / n
   const cv = document.createElement('canvas')
   cv.width = cv.height = s
   const ctx = cv.getContext('2d')!
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, s, s)
   const r = rng(5)
-  const n = 8
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const on = r() < 0.24
-    const warm = r()
-    ctx.fillStyle = on ? `rgb(255,${190 + warm * 50},${110 + warm * 70})` : '#0b0d12'
-    ctx.fillRect(x * (s / n) + 7, y * (s / n) + 8, s / n - 14, s / n - 14)
+  for (let y = 0; y < n; y++) {
+    // lights come in runs along a floor (apartments / offices), most floors dark
+    const floorBusy = r() < 0.45 ? 0.32 : 0.05
+    let on = false
+    for (let x = 0; x < n; x++) {
+      if (r() < 0.3) on = r() < floorBusy
+      const warm = r()
+      ctx.fillStyle = on ? `rgb(255,${180 + warm * 60},${100 + warm * 80})` : '#0b0d12'
+      ctx.fillRect(x * c + 3, y * c + 4, c - 6, c - 7)
+    }
   }
   const tex = new THREE.CanvasTexture(cv)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
@@ -406,18 +410,17 @@ export function windowTexture() {
 
 /** Daytime facade: pale wall with a grid of slightly bluer, darker windows (multiplied over vertex colours). */
 export function facadeTexture() {
-  const s = 256
+  const s = 512, n = 32, c = s / n
   const cv = document.createElement('canvas')
   cv.width = cv.height = s
   const ctx = cv.getContext('2d')!
   ctx.fillStyle = '#f4f3f0'
   ctx.fillRect(0, 0, s, s)
-  const n = 8
   const r = rng(11)
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     const v = 150 + r() * 40
     ctx.fillStyle = `rgb(${v - 25},${v - 5},${v + 25})`
-    ctx.fillRect(x * (s / n) + 6, y * (s / n) + 7, s / n - 12, s / n - 12)
+    ctx.fillRect(x * c + 3, y * c + 3, c - 6, c - 6)
   }
   const tex = new THREE.CanvasTexture(cv)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping

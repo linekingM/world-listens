@@ -14,7 +14,7 @@ export function defaultWorld(): WorldDoc {
   place('rock-0', 'rock', side(-6, 13), -6, 0.6, 1.6, 0)
   place('rock-1', 'rock', side(-2, 15.5), -2, 2.1, 0.9, 1)
   place('house-0', 'house', side(-40, 26), -40, -0.5, 1.6, 0)
-  place('tower-0', 'tower', side(-62, -30), -62, 0.3, 1.5, 1)
+  place('tower-0', 'tower', side(-118, 24), -118, 0.3, 1.5, 1)
   place('tree-0', 'tree', side(-34, 20), -34, 0, 1.4, 1)
   place('pine-0', 'pine', side(-46, 33), -46, 0, 1.3, 0)
   return {

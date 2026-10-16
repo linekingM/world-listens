@@ -10,6 +10,14 @@ import { terrainHeight } from '../../world/layout'
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 
+export interface CamPose { pos: Vector3; target: Vector3 }
+/** Imperative camera moves for UI flows (save auto-framing, load). Filled by <CameraRig/>. */
+export const cameraApi = {
+  getPose: (): CamPose | null => null,
+  /** glide to a pose (home framing when omitted); resolves when the move ends */
+  glide: (_pose?: CamPose, _seconds?: number): Promise<void> => Promise.resolve(),
+}
+
 /** Orbit / zoom / pan within comfortable limits around the hero framing, with a smooth reset. */
 export function CameraRig() {
   const style = useStyleDef()
@@ -17,7 +25,7 @@ export function CameraRig() {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const aspect = useThree((s) => s.size.width / s.size.height)
   const home = useRef({ pos: new Vector3(), target: new Vector3() })
-  const tween = useRef<{ t: number; fromP: Vector3; fromT: Vector3 } | null>(null)
+  const tween = useRef<{ t: number; fromP: Vector3; fromT: Vector3; toP: Vector3; toT: Vector3; dur: number; done?: () => void } | null>(null)
   const resetTick = useWorld((s) => s.cameraResetTick)
 
   useEffect(() => {
@@ -43,21 +51,32 @@ export function CameraRig() {
   useEffect(() => {
     if (!resetTick || !ctl.current) return
     // drop any residual damping / zoom momentum so the camera lands exactly on its home framing
-    ctl.current.enableDamping = false
-    ctl.current.update()
-    tween.current = { t: 0, fromP: camera.position.clone(), fromT: ctl.current.target.clone() }
+    cameraApi.glide()
   }, [resetTick, camera])
+
+  useEffect(() => {
+    cameraApi.getPose = () => (ctl.current ? { pos: camera.position.clone(), target: ctl.current.target.clone() } : null)
+    cameraApi.glide = (pose, seconds = 1.4) => new Promise<void>((resolve) => {
+      const c = ctl.current
+      if (!c) return resolve()
+      tween.current?.done?.()
+      // drop residual damping / zoom momentum so the camera lands exactly on the pose
+      c.enableDamping = false
+      c.update()
+      tween.current = { t: 0, fromP: camera.position.clone(), fromT: c.target.clone(), toP: (pose?.pos ?? home.current.pos).clone(), toT: (pose?.target ?? home.current.target).clone(), dur: seconds, done: resolve }
+    })
+  }, [camera])
 
   useFrame((_, dt) => {
     const c = ctl.current
     if (tween.current && c) {
       const tw = tween.current
-      tw.t = Math.min(1, tw.t + dt / 1.4)
+      tw.t = Math.min(1, tw.t + Math.min(dt, 0.25) / tw.dur)
       const k = ease(tw.t)
-      camera.position.lerpVectors(tw.fromP, home.current.pos, k)
-      c.target.lerpVectors(tw.fromT, home.current.target, k)
+      camera.position.lerpVectors(tw.fromP, tw.toP, k)
+      c.target.lerpVectors(tw.fromT, tw.toT, k)
       c.update()
-      if (tw.t >= 1) { tween.current = null; c.enableDamping = true }
+      if (tw.t >= 1) { tween.current = null; c.enableDamping = true; tw.done?.() }
     }
     // never dip below the terrain
     const g = terrainHeight(camera.position.x, camera.position.z) + 2.5

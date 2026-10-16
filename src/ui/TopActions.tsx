@@ -2,6 +2,40 @@ import { useEffect, useRef, useState } from 'react'
 import { useWorld } from '../state/worldStore'
 import { encodeShare, listSaves, writeSaves, type SavedWorld } from '../state/serialize'
 import { Icon } from './icons'
+import { cameraApi } from '../scene/common/CameraRig'
+import { timeLabel, phaseName } from '../world/sun'
+
+const nextFrames = (n: number) => new Promise<void>((res) => { const step = () => (n-- <= 0 ? res() : requestAnimationFrame(step)); requestAnimationFrame(step) })
+
+function flash() {
+  const el = document.createElement('div')
+  el.className = 'shutter-flash'
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 700)
+}
+
+/** Full-resolution PNG of the current view with a small serif caption (title · world name · time). */
+function captionedPng(): string | null {
+  const src = document.querySelector('.stage canvas') as HTMLCanvasElement | null
+  if (!src) return null
+  const c = document.createElement('canvas')
+  c.width = src.width; c.height = src.height
+  const g = c.getContext('2d')!
+  g.drawImage(src, 0, 0)
+  const s = useWorld.getState()
+  const u = Math.max(c.height, c.width * 0.6) / 900
+  const grd = g.createLinearGradient(0, c.height, 0, c.height - 160 * u)
+  grd.addColorStop(0, 'rgba(10,16,32,0.42)'); grd.addColorStop(1, 'rgba(10,16,32,0)')
+  g.fillStyle = grd; g.fillRect(0, c.height - 160 * u, c.width, 160 * u)
+  g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 12 * u
+  g.fillStyle = '#ffffff'
+  g.font = `700 ${26 * u}px "Noto Serif SC", serif`
+  g.fillText('如果世界听你的', 34 * u, c.height - 58 * u)
+  g.font = `500 ${13 * u}px "Noto Serif SC", serif`
+  g.fillStyle = 'rgba(255,255,255,0.82)'
+  g.fillText(`「${s.name || '未命名世界'}」 · ${timeLabel(s.time)} ${phaseName(s.time)}`, 36 * u, c.height - 32 * u)
+  return c.toDataURL('image/png')
+}
 
 function snapshot(maxW: number, type = 'image/png', q?: number): string | null {
   const c = document.querySelector('.stage canvas') as HTMLCanvasElement | null
@@ -25,12 +59,23 @@ function SavePanel() {
   const toast = useWorld((s) => s.toast)
   const [saves, setSaves] = useState<SavedWorld[]>(() => listSaves())
   const [confirmReset, setConfirmReset] = useState(false)
-  const save = () => {
+  const [busy, setBusy] = useState(false)
+  const save = async () => {
+    if (busy) return
+    setBusy(true)
     const st = useWorld.getState()
     const doc = st.getDoc()
     const list = listSaves()
     const existing = list.find((s) => s.name === doc.name)
-    const entry: SavedWorld = { id: existing?.id ?? `w${Date.now().toString(36)}`, name: doc.name || '未命名世界', savedAt: Date.now(), doc, thumb: snapshot(176, 'image/jpeg', 0.72) ?? undefined }
+    // auto-framing: glide to the hero composition, take the postcard, glide back
+    const pose = cameraApi.getPose()
+    await cameraApi.glide(undefined, 1.1)
+    await nextFrames(2)
+    const thumb = snapshot(176, 'image/jpeg', 0.72) ?? undefined
+    flash()
+    if (pose) cameraApi.glide(pose, 1.1)
+    setBusy(false)
+    const entry: SavedWorld = { id: existing?.id ?? `w${Date.now().toString(36)}`, name: doc.name || '未命名世界', savedAt: Date.now(), doc, thumb }
     const next = [entry, ...list.filter((s) => s.id !== entry.id)].slice(0, 12)
     try {
       writeSaves(next)
@@ -43,7 +88,7 @@ function SavePanel() {
   const remove = (id: string) => { const next = listSaves().filter((s) => s.id !== id); writeSaves(next); setSaves(next) }
   const load = (s: SavedWorld) => { useWorld.getState().loadDoc(s.doc); toast(`已载入「${s.name}」`, 'ok') }
   const exportPng = () => {
-    const url = snapshot(99999)
+    const url = captionedPng()
     if (!url) return
     const a = document.createElement('a')
     a.href = url
@@ -56,9 +101,9 @@ function SavePanel() {
       <div className="panel-title">保存世界</div>
       <div className="field-row">
         <input className="text-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="给你的世界起个名字" aria-label="世界名称" data-testid="world-name" maxLength={40} />
-        <button className="pill primary" onClick={save} data-testid="save-local"><Icon name="save" size={16} />保存</button>
+        <button className="pill primary" onClick={save} disabled={busy} data-testid="save-local"><Icon name="save" size={16} />{busy ? '取景中…' : '保存'}</button>
       </div>
-      <div className="panel-note">保存在这台设备的浏览器中，不会上传。</div>
+      <div className="panel-note">保存时镜头会自动回到最佳取景拍一张封面。存档只保存在这台设备的浏览器里，不会上传；当前世界也会自动续存。</div>
       {saves.length > 0 && (
         <ul className="save-list" data-testid="save-list">
           {saves.map((s) => (

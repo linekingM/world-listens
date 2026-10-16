@@ -51,11 +51,26 @@ function Lamps() {
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace
     return new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })
   }, [])
+  const haloMat = useMemo(() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64
+    const g = cv.getContext('2d')!
+    const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32)
+    grd.addColorStop(0, 'rgba(255,220,160,0.9)'); grd.addColorStop(0.3, 'rgba(255,200,140,0.3)'); grd.addColorStop(1, 'rgba(255,190,120,0)')
+    g.fillStyle = grd; g.fillRect(0, 0, 64, 64)
+    return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: false, toneMapped: false })
+  }, [])
+  const halos = useRef<THREE.Group>(null!)
   useFrame(() => {
     const on = smoothstep(2, -6, env.sun.elevation)
     bulbMat.color.setRGB(1, 0.85, 0.6).multiplyScalar(0.25 + on * 5)
     poolMat.opacity = on * 0.8
     poolMat.visible = on > 0.01
+    // in mist the lamps bloom into soft lantern halos
+    const m = env.weather.mist
+    haloMat.opacity = on * (0.25 + m * 0.6)
+    halos.current.visible = haloMat.opacity > 0.01
+    const sc = 2.2 + m * 5
+    halos.current.children.forEach((c) => c.scale.set(sc, sc, 1))
   })
   return (
     <group>
@@ -70,6 +85,13 @@ function Lamps() {
           </group>
         )
       })}
+      <group ref={halos}>
+        {spots.map((l, i) => {
+          const y = Math.max(terrainHeight(l.x, l.z), 0) + 4.05
+          const dx = l.side > 0 ? -0.82 : 0.82
+          return <sprite key={i} position={[l.x + dx, y, l.z]} material={haloMat} />
+        })}
+      </group>
     </group>
   )
 }
@@ -109,7 +131,7 @@ export function WorldContent() {
   }, [mats, windows, facade])
   useFrame(() => {
     const m = mats.city as THREE.MeshStandardMaterial
-    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 1.4
+    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 1.1
   })
 
   useEffect(() => () => {

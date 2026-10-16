@@ -26,6 +26,7 @@ export function SkyA() {
       uGolden: { value: 0 },
       uSunTint: { value: new THREE.Color('#ffb070') },
       uCover: { value: 0 },
+      uSat: { value: 1 },
       uMist: { value: 0 },
       uFogCol: { value: new THREE.Color('#dde6ee') },
     })
@@ -41,7 +42,7 @@ export function SkyA() {
     u.cloudSpeed.value = 0.00003
     const mat = s.material
     mat.fragmentShader = mat.fragmentShader
-      .replace('uniform float time;', `uniform float time; uniform float uGain; uniform float uNight; uniform vec3 uNightTop; uniform vec3 uNightHorizon; uniform float uT; uniform float uGolden; uniform vec3 uSunTint; uniform float uCover; uniform float uMist; uniform vec3 uFogCol;
+      .replace('uniform float time;', `uniform float time; uniform float uGain; uniform float uNight; uniform vec3 uNightTop; uniform vec3 uNightHorizon; uniform float uT; uniform float uGolden; uniform vec3 uSunTint; uniform float uCover; uniform float uMist; uniform float uSat; uniform vec3 uFogCol;
         float hash13(vec3 p){ p = fract(p*0.1031); p += dot(p, p.zyx+31.32); return fract((p.x+p.y)*p.z); }`)
       .replace('gl_FragColor = vec4( texColor, 1.0 );', `
         texColor *= uGain;
@@ -55,6 +56,9 @@ export function SkyA() {
         float halo = pow(max(cosTheta, 0.0), 180.0) * 0.6 + pow(max(cosTheta, 0.0), 1400.0) * 1.5;
         float vis = smoothstep(-0.02, 0.01, vSunDirection.y);
         texColor += uSunTint * (disc2 * 8.0 * (1.0 - uCover * 0.85) + halo * (0.35 + uGolden * 0.6) * (1.0 - uCover * 0.5)) * vis;
+        // midday: richer blue overhead (the physical model reads pale after tone mapping)
+        float lum0 = dot(texColor, vec3(0.299, 0.587, 0.114));
+        texColor = max(mix(vec3(lum0), texColor, mix(1.0, uSat, smoothstep(0.0, 0.35, direction.y))), 0.0);
         // overcast: flatten towards a soft luminous grey; mist: fade the lower sky into the fog colour
         float lum = dot(texColor, vec3(0.299, 0.587, 0.114));
         vec3 overcast = vec3(lum) * vec3(0.96, 0.99, 1.04) * (0.85 + 0.25 * smoothstep(-0.1, 0.6, direction.y));
@@ -77,7 +81,8 @@ export function SkyA() {
     u.uT.value = st.clock.elapsedTime
     u.uNight.value = smoothstep(-1.5, -10, env.sun.elevation)
     // golden hours get a slightly hazier, warmer sky
-    u.turbidity.value = 3.0 + env.sun.golden * 2.5
+    u.turbidity.value = 2.5 + env.sun.golden * 3.0
+    u.uSat.value = 1 + env.sun.day * (1 - env.sun.golden) * 0.35
     u.uGolden.value = env.sun.golden
     u.uSunTint.value.copy(env.light.sun).lerp(WHITE, 0.3)
     u.uGain.value = (0.5 + env.sun.golden * 0.15) * (1 - env.weather.cover * 0.12)

@@ -119,7 +119,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
     blobMat.opacity = (kind.airborne ? 0.32 * smoothstep(90, 15, height) : 0.42 * smoothstep(16, 0, height)) * vis * (1 - env.weather.mist * 0.5)
     bm.visible = blobMat.opacity > 0.01
     if (ring.current) {
-      ring.current.position.set(b.position.x, (kind.airborne ? b.position.y + 0.4 : gy) + 0.1, b.position.z)
+      ring.current.position.set(b.position.x, (kind.airborne ? b.position.y + radius * 0.17 : gy) + 0.1, b.position.z)
       ring.current.scale.setScalar(radius * 2.5 * (1 + Math.sin(t * 3) * 0.03))
     }
   })
@@ -135,7 +135,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
     <>
       <group ref={body} onPointerDown={onDown} onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'grab' }} onPointerOut={() => { document.body.style.cursor = '' }}>
         <group scale={obj.scale}><ObjectVisual obj={obj} /></group>
-        {selected && <ObjectToolbar obj={obj} height={(kind.airborne ? 4 : kind.height) * obj.scale + 1.2} />}
+        {selected && <ObjectToolbar obj={obj} height={kind.airborne ? radius * 0.3 + 7 : kind.height * obj.scale + 1.2} />}
       </group>
       <mesh ref={blob} geometry={planeGeo} material={blobMat} raycast={noRaycast} renderOrder={1} />
       {selected && <mesh ref={ring} geometry={planeGeo} material={ringMat} raycast={noRaycast} renderOrder={3} />}

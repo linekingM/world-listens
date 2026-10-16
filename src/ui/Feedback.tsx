@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useWorld } from '../state/worldStore'
-import { decodeShare } from '../state/serialize'
+import { decodeShare, readAutosave, writeAutosave } from '../state/serialize'
+import { startSurprises } from '../state/surprises'
 import { OBJECT_KINDS } from '../world/objects'
 import { sims } from '../scene/systems/simulation'
 import { Icon } from './icons'
@@ -66,6 +67,26 @@ export function Hint() {
 export function useAppEffects() {
   useEffect(() => {
     const m = location.hash.match(/[#&]w=([^&]+)/)
+    const noAuto = new URLSearchParams(location.search).has('fresh') || new URLSearchParams(location.search).has('t')
+    if (!m && !noAuto) {
+      // continue where you left off
+      const auto = readAutosave()
+      if (auto) {
+        useWorld.getState().loadDoc(auto)
+        useWorld.getState().toast('已恢复你上次的世界', 'ok')
+      }
+    }
+    // autosave (debounced) every change to the world document
+    let timer = 0
+    let last = ''
+    const unsub = useWorld.subscribe((s) => {
+      const key = JSON.stringify([s.name, s.time, s.weather, s.gravity, s.orbit, s.objects, s.clouds])
+      if (key === last) return
+      last = key
+      clearTimeout(timer)
+      timer = window.setTimeout(() => writeAutosave(useWorld.getState().getDoc()), 800)
+    })
+    startSurprises()
     if (m) {
       decodeShare(m[1]).then((doc) => {
         useWorld.getState().loadDoc(doc)
@@ -73,6 +94,7 @@ export function useAppEffects() {
         useWorld.getState().setHintSeen()
       }).catch(() => useWorld.getState().toast('分享链接无法解析，已打开默认世界', 'error'))
     }
+    return () => { unsub(); clearTimeout(timer) }
   }, [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

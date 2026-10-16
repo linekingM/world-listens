@@ -195,7 +195,7 @@ button { font: inherit; color: inherit; }
   .rail-sep { width: 1px; height: auto; margin: 8px 2px; }
   .rail-label { display: none; }
   .panel-slot { position: fixed; left: 12px; right: 12px; bottom: calc(130px + env(safe-area-inset-bottom)); }
-  .panel { width: auto; }
+  .panel, .popover { width: auto; background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(18, 26, 48, 0.62)); }
   .status-chip { top: calc(62px + env(safe-area-inset-top)); font-size: 12px; }
   .toasts { top: calc(108px + env(safe-area-inset-top)); width: calc(100vw - 24px); }
   .toast { white-space: normal; text-align: center; }
@@ -203,3 +203,6 @@ button { font: inherit; color: inherit; }
   .selection-bar { position: fixed; left: 12px; right: 12px; bottom: calc(132px + env(safe-area-inset-bottom)); justify-content: space-between; padding: 4px 6px 4px 14px; }
   .selection-bar .tb-btn { width: 38px; height: 38px; }
 }
+
+.shutter-flash { position: fixed; inset: 0; background: #fff; pointer-events: none; z-index: 100; animation: shutter 0.65s ease-out forwards; }
+@keyframes shutter { 0% { opacity: 0.85; } 100% { opacity: 0; } }

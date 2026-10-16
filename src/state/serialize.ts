@@ -92,3 +92,13 @@ export function listSaves(): SavedWorld[] {
 export function writeSaves(list: SavedWorld[]) {
   localStorage.setItem(KEY, JSON.stringify(list))
 }
+
+// ── autosave (continue where you left off) ──
+const AUTO = 'world-listens.autosave.v1'
+export function readAutosave(): WorldDoc | null {
+  try { const raw = localStorage.getItem(AUTO); return raw ? parseWorld(JSON.parse(raw)) : null } catch { return null }
+}
+export function writeAutosave(doc: WorldDoc) {
+  try { localStorage.setItem(AUTO, toJSON(doc)) } catch { /* quota: ignore */ }
+}
+export function clearAutosave() { localStorage.removeItem(AUTO) }

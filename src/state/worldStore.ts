@@ -118,8 +118,8 @@ export const useWorld = create<WorldState>((set, get) => ({
   setDragging: (dragging) => set({ dragging }),
   requestCameraReset: () => set((s) => ({ cameraResetTick: s.cameraResetTick + 1 })),
 
-  loadDoc: (doc) => set({ ...doc, selectedId: null, placing: null, timeEase: 'slow' }),
-  resetWorld: () => set({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow' }),
+  loadDoc: (doc) => set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1 })),
+  resetWorld: () => set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1 })),
   getDoc: () => {
     const s = get()
     return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds }
