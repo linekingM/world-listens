@@ -2,111 +2,111 @@
   {
     "name": "loads without errors, no style switcher, HUD present",
     "ok": true,
-    "s": 0.077
+    "s": 0.053
   },
   {
     "name": "HUD covers < 12% of the screen (desktop)",
     "ok": true,
-    "s": 0.007
+    "s": 0.014
   },
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 34.582
+    "s": 36.041
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 46.111
+    "s": 48.947
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 24.886
+    "s": 26.559
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 4.745
+    "s": 5.323
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 22.34
+    "s": 24.876
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 2.422
+    "s": 2.541
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 5.799
+    "s": 5.64
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 15.579
+    "s": 15.946
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 22.913
+    "s": 58.673
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
     "ok": true,
-    "s": 28.618
+    "s": 31.106
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 40.812
+    "s": 48.684
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 423.316
+    "s": 13.493
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 4.556
+    "s": 5.414
   },
   {
     "name": "share link round-trips the whole world",
     "ok": true,
-    "s": 135.281
+    "s": 132.484
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
     "ok": true,
-    "s": 20.315
+    "s": 19.611
   },
   {
     "name": "autosave: reload restores the edited world",
     "ok": true,
-    "s": 10.971
+    "s": 10.237
   },
   {
     "name": "reset world (two-step confirm)",
     "ok": true,
-    "s": 5.172
+    "s": 4.786
   },
   {
     "name": "no runtime errors during the whole desktop session",
     "ok": true,
-    "s": 0.001
+    "s": 0
   },
   {
     "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
     "ok": true,
-    "s": 50.43
+    "s": 349.389
   },
   {
     "name": "first-visit onboarding hint shows once and dismisses",
     "ok": true,
-    "s": 18.287
+    "s": 20.49
   }
 ]
