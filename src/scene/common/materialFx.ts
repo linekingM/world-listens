@@ -96,3 +96,22 @@ export function addWindowGlints(mat: THREE.MeshStandardMaterial) {
         #endif`)
   })
 }
+
+/** Leaves: soft rim + back-lit translucency (light glowing through the canopy edges toward a low sun). */
+export function addLeafGlow(mat: THREE.Material) {
+  return chain(mat, 'leafglow', (s) => {
+    s.uniforms.uSunView = fxUniforms.uSunView
+    s.uniforms.uSunCol = fxUniforms.uSunCol
+    s.uniforms.uLeafGlow = fxUniforms.uLeafGlow
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uSunView; uniform vec3 uSunCol; uniform float uLeafGlow;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        {
+          vec3 Vv = normalize(vViewPosition);
+          float rim = pow(1.0 - clamp(abs(dot(normal, Vv)), 0.0, 1.0), 2.2);
+          float back = pow(max(dot(-Vv, normalize(uSunView)), 0.0), 3.0);
+          float facing = max(dot(normal, normalize(uSunView)), 0.0);
+          totalEmissiveRadiance += diffuseColor.rgb * uSunCol * uLeafGlow * (rim * (0.12 + facing * 0.25 + back * 1.1) + back * 0.18);
+        }`)
+  })
+}

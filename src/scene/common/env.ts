@@ -43,6 +43,7 @@ export const fxUniforms = {
   uSunView: { value: new THREE.Vector3(0, 1, 0) },
   uSunCol: { value: new THREE.Color(1, 1, 1) },
   uGlint: { value: 0 },
+  uLeafGlow: { value: 1 },
   uCloudShadow: { value: 0.3 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) },
 }

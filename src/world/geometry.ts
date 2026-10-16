@@ -179,61 +179,142 @@ function blob(radius: number, detail: number, seed: number, lumpy = 0.22) {
   return g
 }
 
+/** A clump = a few overlapping lumpy blobs around a centre → layered, cauliflower-like canopy mass. */
+function clump(cx: number, cy: number, cz: number, rad: number, n: number, seed: number, detail: number, lumpy: number, flat = 1) {
+  const r = rng(seed * 13 + 7)
+  const out: THREE.BufferGeometry[] = []
+  for (let i = 0; i < n; i++) {
+    const a = r() * Math.PI * 2, d = i === 0 ? 0 : rad * (0.45 + r() * 0.35)
+    const rr = i === 0 ? rad * 0.78 : rad * (0.42 + r() * 0.28)
+    const b = blob(rr, detail, seed * 5 + i, lumpy)
+    b.scale(1, flat, 1)
+    b.translate(cx + Math.cos(a) * d, cy + (i === 0 ? 0 : (r() - 0.35) * rad * 0.7 * flat), cz + Math.sin(a) * d)
+    out.push(b)
+  }
+  return out
+}
+
+function branch(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, r0: number, r1: number, seg: number) {
+  const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0)
+  const c = new THREE.CylinderGeometry(r1, r0, len, seg, 1)
+  c.translate(0, len / 2, 0)
+  const dir = new THREE.Vector3(x1 - x0, y1 - y0, z1 - z0).normalize()
+  c.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir))
+  c.translate(x0, y0, z0)
+  return c
+}
+
+/** Bake foliage colour: per-clump hue jitter, sun-side warm/light top, dark core (fake AO + translucency feel). */
+function leafColors(g: THREE.BufferGeometry, base: THREE.Color, cx: number, cy: number, cz: number, h0: number, h1: number, seed: number) {
+  const r = rng(seed)
+  const tint = base.clone().offsetHSL((r() - 0.5) * 0.04, (r() - 0.5) * 0.12, (r() - 0.5) * 0.06)
+  const warm = col('#c9c25a')
+  const sunDir = new THREE.Vector3(0.45, 0.75, 0.5).normalize()
+  return setColors(g, (p, nn, o) => {
+    const up = smoothstep(h0, h1, p.y)
+    const outward = Math.hypot(p.x - cx, p.z - cz)
+    const lit = Math.max(nn.dot(sunDir), 0)
+    o.copy(tint).lerp(warm, lit * up * 0.22)
+    o.multiplyScalar(0.48 + up * 0.42 + lit * 0.22 + Math.min(outward * 0.04, 0.1) + (noise2(p.x * 2.1 + seed, p.y * 2.3 + p.z) - 0.5) * 0.12)
+    void cy
+  })
+}
+
 /**
- * kind 0 = broadleaf (round canopy), 1 = conifer, 2 = slim poplar.
- * Returns one merged geometry with baked colours; canopy darkens towards the
- * bottom/inside for a cheap ambient-occlusion feel.
+ * kind 0 = broadleaf (v0 wide oak, v1 tall layered elm, v2 umbrella/acacia),
+ * kind 1 = conifer (v0 slender spruce, v1 broad fir, v2 tall scots pine),
+ * kind 2 = column (v0/v1 poplar, v2 pale birch). One merged geometry with baked colours.
  */
 export function buildTree(kind: 0 | 1 | 2, { lowPoly, palette }: BuildOpts, variant = 0) {
+  const v = variant % 3
   const r = rng(100 + kind * 10 + variant)
   const parts: THREE.BufferGeometry[] = []
   const trunkC = col(palette.trunk)
-  const detail = lowPoly ? 0 : 2
+  const detail = lowPoly ? 0 : 1
+  const seg = lowPoly ? 5 : 7
+  const lumpy = lowPoly ? 0.12 : 0.3
+  const addLeaves = (geos: THREE.BufferGeometry[], base: THREE.Color, c: [number, number, number], h0: number, h1: number, seed: number) => {
+    for (const [i, g] of geos.entries()) parts.push(leafColors(g, base, c[0], c[1], c[2], h0, h1, seed + i))
+  }
   if (kind === 0) {
-    const trunk = new THREE.CylinderGeometry(0.16, 0.26, 2.6, lowPoly ? 5 : 8)
-    trunk.translate(0, 1.3, 0)
-    parts.push(solidColor(trunk, trunkC))
-    const leaf = col(palette.leaf[variant % palette.leaf.length])
-    const n = lowPoly ? 3 : 5
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + r()
-      const rad = i === 0 ? 1.7 : 1.05 + r() * 0.45
-      const b = blob(rad, detail, i + variant * 7, lowPoly ? 0.12 : 0.25)
-      const off = i === 0 ? [0, 3.6, 0] : [Math.cos(a) * 1.05, 3.1 + r() * 1.2, Math.sin(a) * 1.05]
-      b.translate(off[0], off[1], off[2])
-      parts.push(setColors(b, (p, nn, o) => {
-        const ao = smoothstep(1.8, 4.8, p.y) * 0.6 + 0.4
-        o.copy(leaf).multiplyScalar(0.55 + ao * 0.55 + Math.max(nn.y, 0) * 0.12)
-      }))
+    const leaf = col(palette.leaf[v % palette.leaf.length])
+    if (v === 0) {
+      // wide oak: short thick trunk, 3 limbs, 4 clumps on a dome
+      parts.push(solidColor(branch(0, 0, 0, 0.1, 2.2, 0, 0.36, 0.26, seg), trunkC))
+      const limbs: [number, number, number][] = [[1.6, 3.6, 0.4], [-1.4, 3.4, 0.8], [0.2, 3.9, -1.5]]
+      for (const l of limbs) parts.push(solidColor(branch(0.1, 2.0, 0, l[0], l[1], l[2], 0.2, 0.1, 5), trunkC))
+      addLeaves(clump(0, 4.6, 0, 1.9, 5, 1 + variant, detail, lumpy, 0.8), leaf, [0, 4, 0], 2.5, 6, 11)
+      for (const [i, l] of limbs.entries()) addLeaves(clump(l[0] * 1.15, l[1] + 0.3, l[2] * 1.15, 1.35, 4, 20 + i + variant, detail, lumpy, 0.85), leaf, [0, 4, 0], 2.5, 6, 30 + i)
+    } else if (v === 1) {
+      // tall layered elm: straight trunk, stacked tiers of clumps (gaps show sky)
+      parts.push(solidColor(branch(0, 0, 0, 0, 3.6, 0, 0.24, 0.15, seg), trunkC))
+      const tiers = [[3.3, 1.75], [4.3, 1.6], [5.3, 1.3], [6.1, 0.85]]
+      for (const [i, [y, rad]] of tiers.entries()) {
+        const a = r() * 6.28
+        addLeaves(clump(Math.cos(a) * 0.4, y, Math.sin(a) * 0.4, rad, 5, 40 + i + variant, detail, lumpy, 0.95), leaf, [0, 4.5, 0], 2.6, 6.6, 50 + i)
+      }
+    } else {
+      // umbrella / acacia: forked leaning trunk, broad flat canopy
+      parts.push(solidColor(branch(0, 0, 0, 0.3, 2.4, 0.1, 0.24, 0.16, seg), trunkC))
+      parts.push(solidColor(branch(0.3, 2.3, 0.1, 1.5, 3.7, 0.4, 0.15, 0.08, 5), trunkC))
+      parts.push(solidColor(branch(0.3, 2.3, 0.1, -1.0, 3.8, -0.4, 0.15, 0.08, 5), trunkC))
+      addLeaves(clump(0.3, 4.0, 0, 2.5, 7, 60 + variant, detail, lumpy, 0.42), leaf, [0.3, 4, 0], 3.4, 4.6, 61)
     }
   } else if (kind === 1) {
-    const trunk = new THREE.CylinderGeometry(0.14, 0.22, 1.6, lowPoly ? 5 : 7)
-    trunk.translate(0, 0.8, 0)
-    parts.push(solidColor(trunk, trunkC))
-    const leaf = col(palette.conifer)
-    const tiers = 3
-    for (let i = 0; i < tiers; i++) {
-      const rad = 1.7 - i * 0.42
-      const h = 2.4 - i * 0.3
-      const cone = new THREE.ConeGeometry(rad, h, lowPoly ? 6 : 10, 1)
-      const y = 1.2 + i * 1.25 + h / 2
-      cone.translate(0, y, 0)
-      parts.push(setColors(cone, (p, _n, o) => {
-        const t = (p.y - (y - h / 2)) / h
-        o.copy(leaf).multiplyScalar(0.6 + t * 0.5 + i * 0.06)
+    const leaf = col(palette.conifer).offsetHSL((v - 1) * 0.02, 0, (v - 1) * 0.03)
+    const cfg = v === 0 ? { tiers: 6, base: 1.55, top: 0.35, y0: 1.0, h: 6.8, trunkH: 1.4 } : v === 1 ? { tiers: 4, base: 2.1, top: 0.6, y0: 0.8, h: 5.0, trunkH: 1.1 } : { tiers: 5, base: 1.15, top: 0.4, y0: 3.0, h: 4.2, trunkH: 3.4 }
+    parts.push(solidColor(branch(0, 0, 0, 0, cfg.trunkH + 0.5, 0, 0.2, 0.12, seg), trunkC))
+    for (let i = 0; i < cfg.tiers; i++) {
+      const t = i / (cfg.tiers - 1)
+      const rad = cfg.base + (cfg.top - cfg.base) * t
+      const hh = (cfg.h / cfg.tiers) * 1.7
+      const y = cfg.y0 + t * cfg.h * 0.82
+      const cone = new THREE.ConeGeometry(rad, hh, lowPoly ? 7 : 11, 2, true)
+      // jagged, drooping skirt: pull every rim vertex down/out by noise
+      const pos = cone.getAttribute('position')
+      for (let k = 0; k < pos.count; k++) {
+        const px = pos.getX(k), py = pos.getY(k), pz = pos.getZ(k)
+        if (py < 0) {
+          const a = Math.atan2(pz, px)
+          const j = noise2(a * 2.3 + i * 7 + v, 3.1) - 0.5
+          const sc = 1 + j * 0.35
+          pos.setXYZ(k, px * sc, py - Math.abs(j) * hh * 0.3 - (py < -hh * 0.45 ? 0.15 : 0), pz * sc)
+        }
+      }
+      cone.computeVertexNormals()
+      cone.translate((r() - 0.5) * 0.12, y + hh / 2, (r() - 0.5) * 0.12)
+      const base = leaf.clone().offsetHSL(0, 0, (r() - 0.5) * 0.04)
+      parts.push(setColors(cone, (p, nn, o) => {
+        const lt = clamp((p.y - y) / hh)
+        o.copy(base).multiplyScalar(0.5 + lt * 0.55 + t * 0.12 + Math.max(nn.y, 0) * 0.1)
       }))
+      // cap the open cone underside with a dark disc so it never reads as hollow
+      const cap = new THREE.CircleGeometry(rad * 0.9, lowPoly ? 7 : 11)
+      cap.rotateX(Math.PI / 2); cap.translate(0, y + 0.05, 0)
+      parts.push(solidColor(cap, base.clone().multiplyScalar(0.35)))
     }
   } else {
-    const trunk = new THREE.CylinderGeometry(0.12, 0.2, 1.8, lowPoly ? 5 : 7)
-    trunk.translate(0, 0.9, 0)
-    parts.push(solidColor(trunk, trunkC))
-    const leaf = col(palette.leaf[(variant + 1) % palette.leaf.length])
-    const b = blob(1, detail, 50 + variant, lowPoly ? 0.1 : 0.18)
-    b.scale(0.95, 2.6, 0.95)
-    b.translate(0, 3.9, 0)
-    parts.push(setColors(b, (p, _n, o) => {
-      o.copy(leaf).multiplyScalar(0.55 + smoothstep(1.5, 6.4, p.y) * 0.6)
-    }))
+    if (v === 2) {
+      // birch: pale slim trunk with dark marks, airy small clumps
+      const bark = col('#d9d4c8')
+      const trunk = branch(0, 0, 0, 0.15, 5.4, 0, 0.15, 0.08, seg)
+      parts.push(setColors(trunk, (p, _n, o) => o.copy(bark).multiplyScalar(noise2(p.y * 3.1, 2.2) > 0.68 ? 0.35 : 1)))
+      const leaf = col(palette.leaf[1]).offsetHSL(0.02, 0.05, 0.05)
+      for (let i = 0; i < 5; i++) {
+        const a = i * 2.4, y = 3.0 + i * 0.75
+        addLeaves(clump(Math.cos(a) * 0.7, y, Math.sin(a) * 0.7, 0.85 + (4 - i) * 0.06, 3, 80 + i, detail, lumpy, 0.8), leaf, [0, 4.5, 0], 2.5, 7, 81 + i)
+      }
+    } else {
+      // poplar: column of stacked clumps tapering to a soft point
+      parts.push(solidColor(branch(0, 0, 0, 0, 2.2, 0, 0.18, 0.12, seg), trunkC))
+      const leaf = col(palette.leaf[(v + 1) % palette.leaf.length])
+      const n = v === 0 ? 5 : 6
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1)
+        const rad = 1.05 * (1 - t * 0.55) * (0.9 + r() * 0.2)
+        addLeaves(clump((r() - 0.5) * 0.25, 2.4 + i * 0.78, (r() - 0.5) * 0.25, rad * 1.1, 4, 90 + i + v * 9, detail, lumpy, 1.25), leaf, [0, 4, 0], 1.8, 7.5, 91 + i)
+      }
+    }
   }
   let g = mergeGeometries(parts.map((p) => normalizeAttrs(p)))!
   if (lowPoly) g = facet(g)
@@ -241,46 +322,107 @@ export function buildTree(kind: 0 | 1 | 2, { lowPoly, palette }: BuildOpts, vari
 }
 
 // ───────────────────────────── floating island ─────────────────────────────
+type IslandShape = 'spike' | 'tiered' | 'bulb' | 'twin'
+const SHAPE_BY_SEED: Record<number, IslandShape> = { 3: 'tiered', 9: 'twin', 15: 'bulb', 31: 'spike', 37: 'bulb', 43: 'tiered' }
+
 export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
+  const shape: IslandShape = SHAPE_BY_SEED[spec.seed] ?? (['spike', 'tiered', 'bulb', 'twin'] as const)[spec.seed % 4]
   const g0 = new THREE.IcosahedronGeometry(1, lowPoly ? 2 : 5)
   const g = g0.index ? g0.toNonIndexed() : g0
   const pos = g.getAttribute('position')
   const v = new THREE.Vector3()
   const R = spec.radius, D = spec.depth
-  // compute per unique direction for crack-free displacement (functions of direction only)
+  const rimAt = (ang: number) => 0.82 + fbm(Math.cos(ang) * 1.6 + spec.seed, Math.sin(ang) * 1.6 + spec.seed, 3) * 0.36
+  const lobeA = spec.seed * 1.7, lobeB = lobeA + 2.6
+  const terr = (t: number, n: number) => { const k = t * n; return (Math.floor(k) + smoothstep(0.62, 1, k - Math.floor(k))) / n }
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i)
     const ang = Math.atan2(v.z, v.x)
     const rad = Math.hypot(v.x, v.z)
-    const edgeN = fbm(Math.cos(ang) * 1.6 + spec.seed, Math.sin(ang) * 1.6 + spec.seed, 3)
-    const rim = 0.82 + edgeN * 0.36
+    const rim = rimAt(ang)
     if (v.y >= 0) {
-      // gentle grassy dome
       const y = v.y * 0.16 + (fbm(v.x * 2 + spec.seed, v.z * 2, 2) - 0.5) * 0.05
       pos.setXYZ(i, v.x * R * rim, y * R, v.z * R * rim)
-    } else {
-      const t = -v.y // 0 rim → 1 tip
-      const jag = fbm(ang * 2.2 + spec.seed * 5, t * 3.5, 3)
-      const taper = Math.pow(1 - t, 0.9) * (1 + (jag * 0.5 - 0.25) * smoothstep(0, 0.3, t))
-      const k = rad > 1e-4 ? (Math.sqrt(1 - t * t) > 1e-4 ? 1 / Math.sqrt(1 - t * t) : 0) : 0
-      const sx = v.x * k * taper * R * rim, sz = v.z * k * taper * R * rim
-      const sy = -Math.pow(t, 1.15) * D * (0.8 + jag * 0.4) - 0.0
-      pos.setXYZ(i, sx, sy, sz)
+      continue
     }
+    const t = -v.y // 0 rim → 1 tip
+    const jag = fbm(ang * 2.2 + spec.seed * 5, t * 3.5, 3)
+    let taper: number, depth = 1
+    let shiftX = 0, shiftZ = 0
+    if (shape === 'tiered') {
+      // cliffs and ledges: near-vertical walls broken by inward steps (layered strata)
+      taper = Math.max(0, 1 - terr(t, 3) * 0.78 - Math.pow(t, 3) * 0.22)
+      depth = 0.95
+    } else if (shape === 'bulb') {
+      taper = Math.pow(Math.max(0, 1 - t * t), 0.35) * (1 - smoothstep(0.55, 1, t) * 0.85)
+      depth = 0.75
+    } else if (shape === 'twin') {
+      const la = Math.pow(Math.max(Math.cos(ang - lobeA), 0), 3), lb = Math.pow(Math.max(Math.cos(ang - lobeB), 0), 3)
+      depth = 0.45 + Math.max(la, lb * 0.8) * 0.6
+      taper = Math.pow(1 - t, 0.8)
+      const pull = smoothstep(0.2, 1, t) * 0.38 * R
+      const tA = la >= lb ? lobeA : lobeB
+      shiftX = Math.cos(tA) * pull; shiftZ = Math.sin(tA) * pull
+    } else {
+      taper = Math.pow(1 - t, 0.9)
+    }
+    taper *= 1 + (jag * 0.5 - 0.25) * smoothstep(0, 0.3, t)
+    const sy = -Math.pow(t, 1.1) * D * depth * (0.8 + jag * 0.4)
+    // horizontal strata grooves (thin inset bands) so the rock reads as layered sediment
+    const band = Math.abs(Math.sin(sy * 1.15 + spec.seed))
+    taper *= 1 - smoothstep(0.85, 1, band) * 0.045 * smoothstep(0.02, 0.15, t)
+    const k = rad > 1e-4 && Math.sqrt(1 - t * t) > 1e-4 ? 1 / Math.sqrt(1 - t * t) : 0
+    pos.setXYZ(i, v.x * k * taper * R * rim + shiftX, sy, v.z * k * taper * R * rim + shiftZ)
   }
   g.computeVertexNormals()
   const grass = col(palette.grassA), grass2 = col(palette.grassB), dirt = col(palette.dirt), rock = col(palette.rock), rockD = col(palette.rockDark)
+  const sand = col('#b39072'), slate = col('#6f6872')
   setColors(g, (p, n, o) => {
     if (p.y > -0.25 && n.y > 0.2) {
       o.copy(grass).lerp(grass2, fbm(p.x * 0.3 + spec.seed, p.z * 0.3, 2))
     } else {
       const t = clamp(-p.y / D)
-      o.copy(dirt).lerp(rock, smoothstep(0.02, 0.25, t)).lerp(rockD, smoothstep(0.35, 1, t))
-      // strata
-      o.multiplyScalar(0.85 + noise2(p.y * 1.4, spec.seed) * 0.3)
+      o.copy(dirt).lerp(rock, smoothstep(0.02, 0.22, t)).lerp(rockD, smoothstep(0.45, 1, t))
+      // sediment bands: alternating warm sandstone / cool slate layers, wobbling along the rim
+      const wob = noise2(Math.atan2(p.z, p.x) * 2 + spec.seed, 1.7) * 0.9
+      const b = Math.sin((p.y + wob) * 1.15 + spec.seed)
+      o.lerp(b > 0.35 ? sand : slate, smoothstep(0.35, 0.9, Math.abs(b)) * 0.35 * smoothstep(0.03, 0.12, t))
+      // dark seams under each ledge + mossy tops of ledges
+      if (n.y < -0.35) o.multiplyScalar(0.62)
+      if (n.y > 0.45 && t > 0.05) o.lerp(grass, 0.45)
+      o.multiplyScalar(0.88 + noise2(p.y * 1.4, spec.seed) * 0.24)
     }
   })
-  return lowPoly ? facet(g) : g
+  // hanging roots (bark) and vines (green, leafy tips) under the rim
+  const extra: THREE.BufferGeometry[] = []
+  const r = rng(spec.seed * 31 + 5)
+  const sc = R / 16
+  const rootC = col('#4a3628'), vineC = col('#46682c'), vineTip = col('#5f8a34')
+  const nRoots = Math.round(10 + R * 0.9)
+  for (let i = 0; i < nRoots; i++) {
+    const ang = r() * Math.PI * 2
+    const rr = R * rimAt(ang) * (0.86 + r() * 0.08)
+    let x = Math.cos(ang) * rr, z = Math.sin(ang) * rr, y = -0.25 - r() * 0.8 * sc
+    const vine = r() < 0.45
+    const len = (vine ? 3 + r() * 5 : 1.6 + r() * 4) * sc
+    const segs = 3
+    let rad0 = (vine ? 0.12 : 0.2) * sc
+    for (let k = 0; k < segs; k++) {
+      const out = (r() - 0.3) * 0.5 * sc
+      const nx = x + Math.cos(ang) * out + (r() - 0.5) * 0.4 * sc, nz = z + Math.sin(ang) * out + (r() - 0.5) * 0.4 * sc
+      const ny = y - len / segs
+      const rad1 = rad0 * 0.62
+      extra.push(solidColor(branch(x, y, z, nx, ny, nz, rad0, rad1, 4), vine ? vineC : rootC))
+      x = nx; y = ny; z = nz; rad0 = rad1
+    }
+    if (vine) {
+      const tip = blob(0.45 * sc, 0, 200 + i, 0.3)
+      tip.scale(1, 1.5, 1); tip.translate(x, y + 0.2 * sc, z)
+      extra.push(solidColor(tip, vineTip))
+    }
+  }
+  const merged = mergeGeometries([normalizeAttrs(g), ...extra.map((e) => normalizeAttrs(e))])!
+  return lowPoly ? facet(merged) : merged
 }
 
 // ───────────────────────────── houses ─────────────────────────────

@@ -80,6 +80,7 @@ export function SunRig() {
     fxUniforms.uSunDir.value.copy(env.sun.dir)
     fxUniforms.uSunView.value.copy(env.sun.dir).transformDirection(camera.matrixWorldInverse)
     fxUniforms.uSunCol.value.copy(L.sun)
+    fxUniforms.uLeafGlow.value = smoothstep(-3, 4, env.sun.elevation) * (1 - cover * 0.75)
     fxUniforms.uGlint.value = env.sun.golden * smoothstep(-2, 2, env.sun.elevation) * (1 - cover)
     fxUniforms.uCloudShadow.value = (0.18 + cover * 0.35) * env.sun.day * (1 - mist * 0.6)
     ;(window as unknown as { __env: unknown }).__env = env
