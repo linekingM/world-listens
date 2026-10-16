@@ -139,3 +139,32 @@ export function addFogScale(mat: THREE.Material, k: number) {
     #endif`)
   })
 }
+
+/** Flagstone paving from the road ribbon UVs (u across 0..1, v along in road widths); fades with distance. */
+export function addFlagstones(mat: THREE.Material) {
+  return chain(mat, 'flags', (s) => {
+    s.vertexShader = s.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vFlagUv;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFlagUv = uv;')
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec2 vFlagUv;
+        float fh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        {
+          vec2 p = vec2(vFlagUv.x * 3.2, vFlagUv.y * 3.6);
+          float row = floor(p.y);
+          p.x += fh(vec2(row, 3.0)) * 0.9 + row * 0.37;
+          vec2 id = floor(p), f = fract(p);
+          // slightly irregular stone outlines
+          f += (vec2(fh(id + 1.3), fh(id + 7.1)) - 0.5) * 0.08;
+          float e = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
+          float aa = max(fwidth(p.x), fwidth(p.y));
+          float mortar = (1.0 - smoothstep(0.035, 0.035 + aa * 1.5 + 0.02, e)) * (1.0 - smoothstep(0.15, 0.5, aa));
+          float tone = fh(id);
+          vec3 stone = diffuseColor.rgb * (0.84 + tone * 0.3) * mix(vec3(1.0), vec3(1.05, 0.98, 0.9), step(0.6, fh(id + 4.0)));
+          stone *= 0.94 + 0.12 * smoothstep(0.0, 0.25, e); // soft bevel
+          diffuseColor.rgb = mix(stone, diffuseColor.rgb * vec3(0.55, 0.6, 0.45), mortar * 0.85);
+        }`)
+  })
+}

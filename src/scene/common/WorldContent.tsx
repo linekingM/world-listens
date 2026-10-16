@@ -1,3 +1,4 @@
+import { addFlagstones } from './materialFx'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
@@ -120,6 +121,7 @@ export function WorldContent() {
   const mats = useMemo(() => ({
     terrain: getMaterial(style, 'terrain'),
     road: style.makeMaterial('road'),
+    path: addFlagstones(style.makeMaterial('road')),
     foliage: getMaterial(style, 'foliage'),
     city: getMaterial(style, 'city'),
     mountain: style.makeMaterial('mountain'),
@@ -143,7 +145,7 @@ export function WorldContent() {
   return (
     <group>
       <mesh geometry={terrain} material={mats.terrain} receiveShadow />
-      <mesh geometry={road.road} material={mats.road} receiveShadow />
+      <mesh geometry={road.road} material={mats.path} receiveShadow />
       <mesh geometry={road.markings} material={mats.road} receiveShadow />
       <mesh geometry={road.curbs} material={mats.road} receiveShadow castShadow />
       <mesh geometry={city} material={mats.city} castShadow receiveShadow />

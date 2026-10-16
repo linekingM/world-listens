@@ -484,48 +484,144 @@ export function buildHouse(kind: 'house' | 'tower', variant: number, { lowPoly, 
 }
 
 // ───────────────────────────── city ─────────────────────────────
-export function buildCity(list: Building[], { lowPoly, palette }: BuildOpts) {
+const STONE = ['#ecdcc0', '#e4c9a2', '#d9b48c', '#f0e6d3', '#dcbf98', '#cf9d76', '#e8d2b0']
+const TERRACOTTA = ['#b9603f', '#a9573c', '#c47249', '#9c4e37']
+const COPPER = '#7fa392', GARDEN = '#6c8a46', CREAM = '#f4ecd8', WATER = '#9cc8e6'
+
+export function buildCity(list: Building[], { lowPoly }: BuildOpts) {
   const parts: THREE.BufferGeometry[] = []
-  const a = col(palette.cityA), b = col(palette.cityB), top = col(palette.cityTop)
-  for (const bd of list) {
-    const box = new THREE.BoxGeometry(bd.w, bd.h, bd.d)
-    box.translate(bd.x, bd.h / 2 + terrainHeight(bd.x, bd.z), bd.z)
-    // UVs scaled to world size → window grid of consistent density
-    const uv = box.getAttribute('uv'), nor = box.getAttribute('normal')
+  const push = (geo: THREE.BufferGeometry, c: THREE.Color | string, shade?: (p: THREE.Vector3, n: THREE.Vector3, o: THREE.Color) => void) => {
+    const cc = typeof c === 'string' ? col(c) : c.clone()
+    setColors(geo, shade ? (p, n, o) => { o.copy(cc); shade(p, n, o) } : (_p, _n, o) => o.copy(cc))
+    parts.push(normalizeAttrs(zeroUv(geo), true))
+  }
+  const box = (w: number, h: number, d: number, x: number, y: number, z: number) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(x, y + h / 2, z); return g }
+  const seg = lowPoly ? 6 : 14
+  /** facade box with window UVs at a consistent world density */
+  const facadeBox = (bd: { x: number; z: number; w: number; d: number; tone: number }, h: number, y0: number, base: THREE.Color) => {
+    const g = new THREE.BoxGeometry(bd.w, h, bd.d)
+    g.translate(bd.x, y0 + h / 2, bd.z)
+    const uv = g.getAttribute('uv'), nor = g.getAttribute('normal')
     for (let i = 0; i < uv.count; i++) {
-      const sideX = Math.abs(nor.getX(i)) > 0.5
-      const sideY = Math.abs(nor.getY(i)) > 0.5
+      const sideX = Math.abs(nor.getX(i)) > 0.5, sideY = Math.abs(nor.getY(i)) > 0.5
       const w = sideX ? bd.d : bd.w
-      uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + bd.tone * 13.7) / 4, sideY ? 0 : (uv.getY(i) * bd.h / 3.4 + Math.floor(bd.tone * 97)) / 4)
+      uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + bd.tone * 13.7) / 4, sideY ? 0 : (uv.getY(i) * h / 3.4 + Math.floor(bd.tone * 97)) / 4)
     }
-    const base = palette.cityTints ? C.set(palette.cityTints[Math.floor(bd.tone * palette.cityTints.length) % palette.cityTints.length]) : C.copy(a).lerp(b, bd.tone)
+    setColors(g, (p, n, o) => { o.copy(base).multiplyScalar(0.82 + clamp((p.y - y0) / 40) * 0.22); if (n.y > 0.5) o.multiplyScalar(0.92) })
+    parts.push(normalizeAttrs(g, true))
+  }
+  const hipRoof = (x: number, y: number, z: number, w: number, d: number, c: string, steep = 0.42) => {
+    const g = new THREE.ConeGeometry(Math.SQRT1_2 * 1.08, 1, 4, 1)
+    g.rotateY(Math.PI / 4); g.scale(w, Math.min(w, d) * steep, d); g.translate(x, y + Math.min(w, d) * steep / 2, z)
+    push(g, c, (p, _n, o) => o.multiplyScalar(0.85 + noise2(p.x * 0.7, p.z * 0.7) * 0.25))
+  }
+  const bushes = (x: number, y: number, z: number, w: number, d: number, n: number, seed: number) => {
+    const r = rng(seed)
+    for (let i = 0; i < n; i++) { const b = blob(0.9 + r() * 0.8, 0, seed + i, 0.3); b.translate(x + (r() - 0.5) * w * 0.7, y + 0.6, z + (r() - 0.5) * d * 0.7); push(b, GARDEN, (p, _n, o) => o.multiplyScalar(0.8 + noise2(p.x, p.z) * 0.4)) }
+  }
+  const capCone = (x: number, y: number, z: number, r0: number, h: number, c: string, sides = seg) => { const g = new THREE.ConeGeometry(r0, h, sides); g.translate(x, y + h / 2, z); push(g, c) }
+  const clockFaces = (x: number, y: number, z: number, half: number, rad: number) => {
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2
+      const disc = new THREE.CircleGeometry(rad, 16); disc.rotateY(a); disc.translate(x + Math.sin(a) * (half + 0.05), y, z + Math.cos(a) * (half + 0.05))
+      push(disc, CREAM)
+      const hub = new THREE.CircleGeometry(rad * 0.18, 8); hub.rotateY(a); hub.translate(x + Math.sin(a) * (half + 0.08), y, z + Math.cos(a) * (half + 0.08))
+      push(hub, '#3b3430')
+    }
+  }
+  for (const bd of list) {
     const terr = terrainHeight(bd.x, bd.z)
-    setColors(box, (p, n, o) => {
-      o.copy(base).multiplyScalar(0.7 + clamp((p.y - terr) / 120) * 0.4)
-      if (n.y > 0.5) o.copy(top)
-    })
-    parts.push(normalizeAttrs(box, true))
-    if (bd.kind === 1) {
-      // setback tower + spire
-      const t2 = new THREE.BoxGeometry(bd.w * 0.62, bd.h * 0.22, bd.d * 0.62)
-      t2.translate(bd.x, terr + bd.h * 1.11, bd.z)
-      setColors(t2, (_p, _n, o) => o.copy(base).multiplyScalar(1.05))
-      parts.push(normalizeAttrs(zeroUv(t2), true))
-      const sp = new THREE.ConeGeometry(bd.w * 0.12, bd.h > 90 ? bd.h * 0.3 : bd.h * 0.08, 6)
-      sp.translate(bd.x, terr + bd.h * 1.22 + bd.h * 0.15, bd.z)
-      setColors(sp, (_p, _n, o) => o.copy(top))
-      parts.push(normalizeAttrs(zeroUv(sp), true))
-    } else if (bd.kind === 2) {
-      const dome = new THREE.SphereGeometry(Math.min(bd.w, bd.d) * 0.48, lowPoly ? 6 : 14, lowPoly ? 4 : 8, 0, Math.PI * 2, 0, Math.PI / 2)
-      dome.translate(bd.x, terr + bd.h, bd.z)
-      setColors(dome, (_p, _n, o) => o.copy(top))
-      parts.push(normalizeAttrs(zeroUv(dome), true))
+    const base = col(STONE[Math.floor(bd.tone * 97) % STONE.length])
+    const roofC = TERRACOTTA[Math.floor(bd.tone * 53) % TERRACOTTA.length]
+    if (bd.kind === 0 || bd.kind === 3 || bd.kind === 2) {
+      facadeBox(bd, bd.h, terr, base)
+      const top = terr + bd.h
+      if (bd.kind === 3) hipRoof(bd.x, top, bd.z, bd.w * 1.06, bd.d * 1.06, roofC)
+      else if (bd.kind === 2) {
+        const r0 = Math.min(bd.w, bd.d) * 0.42
+        const drum = new THREE.CylinderGeometry(r0 * 0.95, r0 * 0.95, r0 * 0.5, seg); drum.translate(bd.x, top + r0 * 0.25, bd.z); push(drum, base)
+        const dome = new THREE.SphereGeometry(r0, seg, lowPoly ? 4 : 8, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(1, 1.15, 1); dome.translate(bd.x, top + r0 * 0.5, bd.z)
+        push(dome, bd.tone > 0.5 ? COPPER : roofC)
+      } else {
+        // parapet + either a roof garden or a small rooftop pavilion
+        push(box(bd.w + 0.4, 0.8, bd.d + 0.4, bd.x, top, bd.z), base.clone().multiplyScalar(0.9))
+        if (bd.tone > 0.45) { push(box(bd.w - 0.6, 0.3, bd.d - 0.6, bd.x, top + 0.2, bd.z), GARDEN); bushes(bd.x, top + 0.3, bd.z, bd.w, bd.d, 3, Math.floor(bd.tone * 1000)) }
+        else { push(box(bd.w * 0.4, 2.4, bd.d * 0.4, bd.x, top, bd.z), base); hipRoof(bd.x, top + 2.4, bd.z, bd.w * 0.46, bd.d * 0.46, roofC) }
+      }
+    } else if (bd.kind === 4) {
+      // terraced: three setbacks, each terrace planted
+      let w = bd.w * 1.2, d = bd.d * 1.2, y = terr
+      const hs = [bd.h * 0.45, bd.h * 0.33, bd.h * 0.22]
+      for (let k = 0; k < 3; k++) {
+        facadeBox({ ...bd, w, d }, hs[k], y, base)
+        y += hs[k]
+        push(box(w - 0.4, 0.3, d - 0.4, bd.x, y, bd.z), GARDEN)
+        bushes(bd.x, y + 0.2, bd.z, w, d, 2 + k, Math.floor(bd.tone * 977) + k * 7)
+        w *= 0.7; d *= 0.7
+      }
+    } else if (bd.kind === 1) {
+      // elegant slender tower: tapered shaft, balcony ring, lantern, copper needle cap
+      const r0 = bd.w * 0.5
+      const shaft = new THREE.CylinderGeometry(r0 * 0.72, r0, bd.h, seg); shaft.translate(bd.x, terr + bd.h / 2, bd.z)
+      push(shaft, base, (p, _n, o) => o.multiplyScalar(0.84 + clamp((p.y - terr) / bd.h) * 0.2 + (Math.sin((p.y - terr) * 0.9) > 0.92 ? -0.12 : 0)))
+      const ring = new THREE.CylinderGeometry(r0 * 1.05, r0 * 1.05, 0.7, seg); ring.translate(bd.x, terr + bd.h, bd.z); push(ring, CREAM)
+      const lantern = new THREE.CylinderGeometry(r0 * 0.55, r0 * 0.6, 3.2, seg); lantern.translate(bd.x, terr + bd.h + 2, bd.z); push(lantern, base)
+      capCone(bd.x, terr + bd.h + 3.6, bd.z, r0 * 0.66, bd.h * 0.22, COPPER)
+    } else if (bd.kind === 5) {
+      // clock / bell tower: square shaft, cornice, clock faces, open belfry, pyramid cap
+      const s = bd.w
+      facadeBox(bd, bd.h * 0.78, terr, base)
+      const yC = terr + bd.h * 0.78
+      push(box(s * 1.18, 0.9, s * 1.18, bd.x, yC, bd.z), CREAM)
+      clockFaces(bd.x, yC - 2.6, bd.z, s / 2, s * 0.32)
+      // belfry: four corner piers
+      const ph = bd.h * 0.12
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) push(box(s * 0.24, ph, s * 0.24, bd.x + sx * s * 0.38, yC + 0.9, bd.z + sz * s * 0.38), base)
+      const bell = new THREE.SphereGeometry(s * 0.2, 10, 6); bell.translate(bd.x, yC + 0.9 + ph * 0.45, bd.z); push(bell, '#8a6a3a')
+      push(box(s * 1.1, 0.7, s * 1.1, bd.x, yC + 0.9 + ph, bd.z), CREAM)
+      const cap = new THREE.ConeGeometry(s * 0.78, bd.h * 0.2, 4); cap.rotateY(Math.PI / 4); cap.translate(bd.x, yC + 1.6 + ph + bd.h * 0.1, bd.z); push(cap, bd.tone > 0.5 ? COPPER : roofC)
+    } else if (bd.kind === 6) {
+      // cathedral: long nave with terracotta roof, transept, drum + ribbed dome + lantern
+      facadeBox(bd, bd.h, terr, base)
+      hipRoof(bd.x, terr + bd.h, bd.z, bd.w * 1.04, bd.d * 1.04, '#b25d3e', 0.3)
+      facadeBox({ ...bd, w: bd.w * 1.6, d: bd.d * 0.36 }, bd.h * 0.9, terr, base)
+      const r0 = bd.w * 0.42, yD = terr + bd.h + 3
+      const drum = new THREE.CylinderGeometry(r0, r0 * 1.04, 7, seg * 2); drum.translate(bd.x, yD + 3.5, bd.z); push(drum, base, (p, _n, o) => { const a = Math.atan2(p.z - bd.z, p.x - bd.x); if (Math.sin(a * 8) > 0.6 && p.y > yD + 2 && p.y < yD + 5.5) o.multiplyScalar(0.45) })
+      const dome = new THREE.SphereGeometry(r0 * 1.02, seg * 2, 10, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(1, 1.25, 1); dome.translate(bd.x, yD + 7, bd.z)
+      push(dome, '#c0643f', (p, _n, o) => { const a = Math.atan2(p.z - bd.z, p.x - bd.x); if (Math.abs(Math.sin(a * 4)) > 0.96) o.set(CREAM) })
+      const lan = new THREE.CylinderGeometry(1.3, 1.5, 3.2, 10); lan.translate(bd.x, yD + 7 + r0 * 1.25 + 1.2, bd.z); push(lan, CREAM)
+      capCone(bd.x, yD + 7 + r0 * 1.25 + 2.8, bd.z, 1.4, 3.6, COPPER, 10)
     }
+  }
+  // the one surreal touch: a broken stone aqueduct drifting above the rooftops, still carrying water
+  {
+    const ax = -70, az = -345, ay = terrainHeight(ax, az) + 58, len = 50, n = 6
+    const parts0 = parts.length
+    push(box(len, 2.6, 4.4, 0, 0, 0), '#e2c9a4')
+    push(box(len - 1, 0.25, 2.2, 0, 2.6, 0), WATER)
+    for (let k = 0; k <= n; k++) {
+      const x = -len / 2 + (k * len) / n
+      const ph = k === n ? 6 : 11.5
+      push(box(2.2, ph, 4.0, x, -ph, 0), '#dcc29c')
+      // arch soffit between piers
+      if (k < n) { const arch = new THREE.CylinderGeometry(len / n / 2 - 1.1, len / n / 2 - 1.1, 4.0, 10, 1, true, Math.PI / 2, Math.PI); arch.rotateX(Math.PI / 2); arch.translate(x + len / n / 2, 0, 0); push(arch, '#cdb08a') }
+      // torn earth clinging under each pier
+      const rock = new THREE.ConeGeometry(2.6, 4 + (k % 3) * 1.5, 6); rock.rotateX(Math.PI); rock.translate(x, -16 - (k % 3) * 0.7, 0); push(rock, '#8a7562', (p, _n, o) => o.multiplyScalar(0.8 + noise2(p.x, p.y) * 0.3))
+    }
+    // the slab of torn ground it still stands on
+    const slab = new THREE.BoxGeometry(len + 3, 2.2, 7, 12, 1, 3)
+    const sp = slab.getAttribute('position')
+    for (let i = 0; i < sp.count; i++) if (sp.getY(i) < 0) sp.setY(i, sp.getY(i) - 1.5 - noise2(sp.getX(i) * 0.3, sp.getZ(i)) * 4)
+    slab.computeVertexNormals(); slab.translate(0, -12.5, 0)
+    push(slab, '#8f7863', (p, n, o) => { if (n.y > 0.6) o.set(GARDEN); o.multiplyScalar(0.85 + noise2(p.x * 0.5, p.y) * 0.25) })
+    const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0.03, 0.3, -0.06)).setPosition(ax, ay, az)
+    for (let i = parts0; i < parts.length; i++) parts[i].applyMatrix4(m)
   }
   let g = mergeGeometries(parts)!
   if (lowPoly) g.computeVertexNormals()
   return g
 }
+
 function zeroUv(g: THREE.BufferGeometry) {
   const uv = g.getAttribute('uv')
   for (let i = 0; i < uv.count; i++) uv.setXY(i, 0, 0)
@@ -549,7 +645,7 @@ export function windowTexture() {
       if (r() < 0.3) on = r() < floorBusy
       const warm = r()
       ctx.fillStyle = on ? (warm > 0.85 ? `rgb(${190 + warm * 30},${215},${235})` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`) : '#0b0d12'
-      ctx.fillRect(x * c + 3, y * c + 4, c - 6, c - 7)
+      ctx.fillRect(x * c + 5, y * c + 3, c - 10, c - 8)
     }
   }
   const tex = new THREE.CanvasTexture(cv)
@@ -565,13 +661,19 @@ export function facadeTexture() {
   const cv = document.createElement('canvas')
   cv.width = cv.height = s
   const ctx = cv.getContext('2d')!
-  ctx.fillStyle = '#f4f3f0'
+  ctx.fillStyle = '#f6f1e8'
   ctx.fillRect(0, 0, s, s)
   const r = rng(11)
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const v = 150 + r() * 40
-    ctx.fillStyle = `rgb(${v - 25},${v - 5},${v + 25})`
-    ctx.fillRect(x * c + 3, y * c + 3, c - 6, c - 6)
+  for (let y = 0; y < n; y++) {
+    // faint storey band
+    ctx.fillStyle = 'rgba(120,96,70,0.10)'; ctx.fillRect(0, y * c + c - 2, s, 2)
+    for (let x = 0; x < n; x++) {
+      const v = 70 + r() * 30
+      ctx.fillStyle = `rgb(${v + 20},${v + 8},${v})`
+      ctx.fillRect(x * c + 5, y * c + 3, c - 10, c - 8)
+      // shutters / sill
+      ctx.fillStyle = 'rgba(255,250,240,0.55)'; ctx.fillRect(x * c + 4, y * c + c - 5, c - 8, 1.5)
+    }
   }
   const tex = new THREE.CanvasTexture(cv)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping

@@ -56,7 +56,9 @@ export function treeSpots(): TreeSpot[] {
   return out
 }
 
-export interface Building { x: number; z: number; w: number; d: number; h: number; tone: number; kind: 0 | 1 | 2 }
+/** 0 flat block (parapet, maybe roof garden) · 1 slender tower · 2 domed hall · 3 pitched/hip terracotta roof
+ *  4 terraced setbacks with gardens · 5 clock/bell tower · 6 cathedral (landmark) */
+export interface Building { x: number; z: number; w: number; d: number; h: number; tone: number; kind: 0 | 1 | 2 | 3 | 4 | 5 | 6 }
 
 export function cityBuildings(): Building[] {
   const r = rng(21)
@@ -66,15 +68,22 @@ export function cityBuildings(): Building[] {
     for (let x = -190; x < 190; x += 8 + r() * 7) {
       const dx = (x - cx) / 110, dz = (z + 390) / 75
       const core = Math.exp(-(dx * dx + dz * dz))
-      if (r() < 0.25 - core * 0.2) continue
+      if (r() < 0.22 - core * 0.15) continue
       if (Math.abs(x - roadX(z) * 0.4) < 6 && z > -330) continue // avenue entering the city
-      const h = 5 + core * (20 + r() * 42) + r() * 8
-      out.push({ x: x + r() * 3, z, w: 5 + r() * 6, d: 5 + r() * 6, h, tone: r(), kind: h > 48 && r() < 0.3 ? 1 : r() < 0.15 ? 2 : 0 })
+      // keep the landmark plots clear
+      if (Math.hypot(x - (cx + 26), z + 385) < 12 || Math.hypot(x - (cx - 30), z + 405) < 22 || Math.hypot(x - (cx + 62), z + 362) < 8) continue
+      const h = 8 + core * (14 + r() * 28) + r() * 6
+      const roll = r()
+      const kind: Building['kind'] = h > 30 && roll < 0.16 ? 1 : roll < 0.5 ? 3 : roll < 0.6 && h > 16 ? 4 : roll < 0.66 ? 2 : 0
+      out.push({ x: x + r() * 3, z, w: 6 + r() * 6, d: 6 + r() * 6, h, tone: r(), kind })
     }
   }
-  // landmark spire just right of the avenue
-  out.push({ x: cx + 26, z: -385, w: 9, d: 9, h: 92, tone: 0.5, kind: 1 })
-  out.push({ x: cx - 34, z: -410, w: 11, d: 11, h: 68, tone: 0.2, kind: 1 })
+  // landmarks: an elegant campanile on the avenue axis, a domed cathedral, a clock tower, two slender towers
+  out.push({ x: cx + 26, z: -385, w: 8, d: 8, h: 82, tone: 0.42, kind: 5 })
+  out.push({ x: cx - 30, z: -405, w: 30, d: 36, h: 28, tone: 0.15, kind: 6 })
+  out.push({ x: cx + 62, z: -362, w: 6, d: 6, h: 40, tone: 0.7, kind: 5 })
+  out.push({ x: cx - 78, z: -380, w: 7, d: 7, h: 66, tone: 0.3, kind: 1 })
+  out.push({ x: cx + 96, z: -420, w: 7, d: 7, h: 62, tone: 0.8, kind: 1 })
   return out
 }
 
