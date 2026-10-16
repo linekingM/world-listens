@@ -73,6 +73,10 @@ export function addTerrainFx(mat: THREE.Material) {
           float shadow = smoothstep(0.52, 0.75, c) * uCloudShadow;
           reflectedLight.directDiffuse *= 1.0 - shadow;
           reflectedLight.directSpecular *= 1.0 - shadow;
+          // stylised ramp: lit grass warms/brightens, shade cools toward teal instead of going muddy
+          float litAmt = clamp(dot(reflectedLight.directDiffuse, vec3(0.333)) * 1.6, 0.0, 1.0);
+          reflectedLight.directDiffuse *= mix(vec3(1.0), vec3(1.08, 1.06, 0.88), litAmt);
+          reflectedLight.indirectDiffuse *= vec3(0.92, 1.02, 1.1);
         }`)
       .replace('#include <fog_fragment>', `#include <fog_fragment>
         #ifdef USE_FOG

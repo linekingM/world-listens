@@ -507,7 +507,7 @@ export function buildCity(list: Building[], { lowPoly }: BuildOpts) {
       const w = sideX ? bd.d : bd.w
       uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + bd.tone * 13.7) / 4, sideY ? 0 : (uv.getY(i) * h / 3.4 + Math.floor(bd.tone * 97)) / 4)
     }
-    setColors(g, (p, n, o) => { o.copy(base).multiplyScalar(0.82 + clamp((p.y - y0) / 40) * 0.22); if (n.y > 0.5) o.multiplyScalar(0.92) })
+    setColors(g, (p, n, o) => { o.copy(base).multiplyScalar(0.74 + clamp((p.y - y0) / 40) * 0.26); if (n.y > 0.5) o.multiplyScalar(0.92) })
     parts.push(normalizeAttrs(g, true))
   }
   const hipRoof = (x: number, y: number, z: number, w: number, d: number, c: string, steep = 0.42) => {

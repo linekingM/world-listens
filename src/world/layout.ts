@@ -34,11 +34,17 @@ export function treeSpots(): TreeSpot[] {
   const r = rng(7)
   const out: TreeSpot[] = []
   // roadside avenue
-  for (let z = 12; z > -255; z -= 8.5 + r() * 3) {
-    for (const side of [-1, 1]) {
-      if (r() < 0.18) continue
-      const x = roadX(z) + side * (ROAD_WIDTH / 2 + 3.2 + r() * 2.5)
-      out.push({ x, z: z + r() * 2, y: 0, s: 1.05 + r() * 0.45, kind: r() < 0.62 ? 0 : r() < 0.7 ? 2 : 1, tint: r(), rot: r() * 6.28 })
+  for (const side of [-1, 1]) {
+    let z = 12 - r() * 6
+    while (z > -255) {
+      const n = [1, 3, 3, 5][Math.floor(r() * 4)]
+      const kind = r() < 0.62 ? 0 : r() < 0.7 ? 2 : 1 // a clump shares a species
+      for (let k = 0; k < n; k++) {
+        const zz = z - k * (3.2 + r() * 1.6)
+        const x = roadX(zz) + side * (ROAD_WIDTH / 2 + 2.8 + r() * 4.5 + (k % 2) * 2.2)
+        out.push({ x, z: zz, y: 0, s: 0.75 + r() * 0.65, kind: r() < 0.8 ? kind : (r() < 0.5 ? 1 : 0), tint: r(), rot: r() * 6.28 })
+      }
+      z -= n * 3.6 + 7 + r() * 12 // open meadow gaps between clumps
     }
   }
   // groves in the meadows
@@ -99,13 +105,13 @@ export interface IslandSpec {
 
 export const ISLANDS: IslandSpec[] = [
   {
-    pos: [-38, 25, -80], radius: 16, depth: 26, seed: 3, waterfall: true,
+    pos: [-46, 31, -104], radius: 14, depth: 23, seed: 3, waterfall: true,
     houses: [
-      { x: -2, z: 1, rot: 0.4, s: 1.2, kind: 'house' },
-      { x: 4.5, z: -3, rot: -0.3, s: 1.0, kind: 'tower' },
-      { x: 3.5, z: 4.5, rot: 1.2, s: 0.8, kind: 'house' },
+      { x: -2, z: 1, rot: 0.4, s: 1.15, kind: 'house' },
+      { x: 4, z: -2.6, rot: -0.3, s: 1.0, kind: 'tower' },
+      { x: 3, z: 4, rot: 1.2, s: 0.8, kind: 'house' },
     ],
-    trees: [{ x: -7, z: -4, s: 1 }, { x: -8, z: 3, s: 0.8 }, { x: 0, z: -7, s: 0.9 }, { x: 8, z: 2, s: 0.7 }, { x: -4, z: 7, s: 0.75 }],
+    trees: [{ x: -6, z: -3.5, s: 1 }, { x: -7, z: 2.6, s: 0.8 }, { x: 0, z: -6, s: 0.9 }, { x: 7, z: 2, s: 0.7 }, { x: -3.5, z: 6, s: 0.75 }],
   },
   {
     pos: [44, 37, -128], radius: 12.5, depth: 20, seed: 9,

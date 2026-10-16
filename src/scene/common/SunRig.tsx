@@ -10,7 +10,7 @@ import { smoothstep } from '../../lib/random'
 
 const FOCUS = new THREE.Vector3(-4, 0, -55)
 const moonDir = new THREE.Vector3()
-const GREY = new THREE.Color('#b9c2cc'), MIST = new THREE.Color('#e4e9ee'), NIGHT_MIST = new THREE.Color('#3a4560')
+const GREY = new THREE.Color('#b9c2cc'), MIST = new THREE.Color('#efe3dc'), NIGHT_MIST = new THREE.Color('#34486e'), DAWN_MIST = new THREE.Color('#f2d6cc')
 const TMP = new THREE.Color()
 
 const damp = (a: number, b: number, rate: number, dt: number) => a + (b - a) * (1 - Math.exp(-rate * dt))
@@ -56,7 +56,8 @@ export function SunRig() {
     L.hemiSky.lerp(GREY, cover * 0.3)
     // mist colour follows the light: pale silver by day, dusky rose at sunset, blue-grey at night
     const lum = L.fog.r * 0.3 + L.fog.g * 0.59 + L.fog.b * 0.11
-    TMP.setRGB(lum, lum, lum).lerp(L.fog, 0.45).lerp(MIST, env.sun.day * (1 - env.sun.golden) * 0.6).lerp(NIGHT_MIST, env.sun.night * 0.6)
+    // pastel, not smog: keep most of the key colour's hue, rose-peach at dawn/dusk, lavender-blue at night
+    TMP.setRGB(lum, lum, lum).lerp(L.fog, 0.75).lerp(MIST, env.sun.day * (1 - env.sun.golden) * 0.55).lerp(DAWN_MIST, env.sun.golden * 0.45).lerp(NIGHT_MIST, env.sun.night * 0.6)
     L.fog.lerp(TMP, mist * 0.8).lerp(GREY, cover * 0.25 * env.sun.day)
 
     const useMoon = env.sun.elevation < -3

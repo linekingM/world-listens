@@ -12,7 +12,7 @@ export function getMaterial(style: StyleDef, role: MaterialRole): THREE.Material
     m = style.makeMaterial(role)
     if (role === 'terrain') addTerrainFx(m)
     if (role === 'foliage') { addWind(m, 0.07, 7); addLeafGlow(m) }
-    if (role === 'city') addFogScale(m, 0.72)
+    if (role === 'city') addFogScale(m, 0.55)
     if (role === 'rock') { addFogScale(m, 0.62); addLeafGlow(m, 0.6) }
     if (role === 'city' && m instanceof THREE.MeshStandardMaterial) addWindowGlints(m)
     cache.set(key, m)
