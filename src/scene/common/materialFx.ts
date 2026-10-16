@@ -79,8 +79,8 @@ export function addTerrainFx(mat: THREE.Material) {
         {
           // low-lying haze pooling in the valleys, thicker at golden hour / in mist
           float dCam = length(vWorldP.xz - cameraPosition.xz);
-          float valley = smoothstep(7.0, -1.5, vWorldP.y) * smoothstep(25.0, 160.0, dCam);
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, clamp(valley * uValley, 0.0, 0.6));
+          float valley = smoothstep(6.0, -2.0, vWorldP.y) * smoothstep(60.0, 240.0, dCam);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, clamp(valley * uValley, 0.0, 0.32));
         }
         #endif`)
   })

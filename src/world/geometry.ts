@@ -208,14 +208,14 @@ function branch(x0: number, y0: number, z0: number, x1: number, y1: number, z1: 
 function leafColors(g: THREE.BufferGeometry, base: THREE.Color, cx: number, cy: number, cz: number, h0: number, h1: number, seed: number) {
   const r = rng(seed)
   const tint = base.clone().offsetHSL((r() - 0.5) * 0.04, (r() - 0.5) * 0.12, (r() - 0.5) * 0.06)
-  const warm = col('#c9c25a')
-  const sunDir = new THREE.Vector3(0.45, 0.75, 0.5).normalize()
+  const warm = col('#e0c060')
+  const sunDir = new THREE.Vector3(0.65, 0.45, 0.4).normalize()
   return setColors(g, (p, nn, o) => {
     const up = smoothstep(h0, h1, p.y)
     const outward = Math.hypot(p.x - cx, p.z - cz)
     const lit = Math.max(nn.dot(sunDir), 0)
-    o.copy(tint).lerp(warm, lit * up * 0.22)
-    o.multiplyScalar(0.48 + up * 0.42 + lit * 0.22 + Math.min(outward * 0.04, 0.1) + (noise2(p.x * 2.1 + seed, p.y * 2.3 + p.z) - 0.5) * 0.12)
+    o.copy(tint).lerp(warm, lit * up * 0.36)
+    o.multiplyScalar(0.36 + up * 0.5 + lit * 0.22 + Math.min(outward * 0.04, 0.1) + (noise2(p.x * 2.1 + seed, p.y * 2.3 + p.z) - 0.5) * 0.12)
     void cy
   })
 }
@@ -248,10 +248,10 @@ export function buildTree(kind: 0 | 1 | 2, { lowPoly, palette }: BuildOpts, vari
     } else if (v === 1) {
       // tall layered elm: straight trunk, stacked tiers of clumps (gaps show sky)
       parts.push(solidColor(branch(0, 0, 0, 0, 3.6, 0, 0.24, 0.15, seg), trunkC))
-      const tiers = [[3.3, 1.75], [4.3, 1.6], [5.3, 1.3], [6.1, 0.85]]
+      const tiers = [[3.1, 1.75], [4.4, 1.55], [5.6, 1.25], [6.6, 0.8]]
       for (const [i, [y, rad]] of tiers.entries()) {
         const a = r() * 6.28
-        addLeaves(clump(Math.cos(a) * 0.4, y, Math.sin(a) * 0.4, rad, 5, 40 + i + variant, detail, lumpy, 0.95), leaf, [0, 4.5, 0], 2.6, 6.6, 50 + i)
+        addLeaves(clump(Math.cos(a) * 0.4, y, Math.sin(a) * 0.4, rad, 5, 40 + i + variant, detail, lumpy, 0.72), leaf, [0, 4.5, 0], 2.6, 6.6, 50 + i)
       }
     } else {
       // umbrella / acacia: forked leaning trunk, broad flat canopy
@@ -261,7 +261,7 @@ export function buildTree(kind: 0 | 1 | 2, { lowPoly, palette }: BuildOpts, vari
       addLeaves(clump(0.3, 4.0, 0, 2.5, 7, 60 + variant, detail, lumpy, 0.42), leaf, [0.3, 4, 0], 3.4, 4.6, 61)
     }
   } else if (kind === 1) {
-    const leaf = col(palette.conifer).offsetHSL((v - 1) * 0.02, 0, (v - 1) * 0.03)
+    const leaf = col(v === 0 ? '#22473a' : v === 1 ? '#3a6638' : '#5c6a36')
     const cfg = v === 0 ? { tiers: 6, base: 1.55, top: 0.35, y0: 1.0, h: 6.8, trunkH: 1.4 } : v === 1 ? { tiers: 4, base: 2.1, top: 0.6, y0: 0.8, h: 5.0, trunkH: 1.1 } : { tiers: 5, base: 1.15, top: 0.4, y0: 3.0, h: 4.2, trunkH: 3.4 }
     parts.push(solidColor(branch(0, 0, 0, 0, cfg.trunkH + 0.5, 0, 0.2, 0.12, seg), trunkC))
     for (let i = 0; i < cfg.tiers; i++) {
@@ -369,14 +369,14 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
     taper *= 1 + (jag * 0.5 - 0.25) * smoothstep(0, 0.3, t)
     const sy = -Math.pow(t, 1.1) * D * depth * (0.8 + jag * 0.4)
     // horizontal strata grooves (thin inset bands) so the rock reads as layered sediment
-    const band = Math.abs(Math.sin(sy * 1.15 + spec.seed))
-    taper *= 1 - smoothstep(0.85, 1, band) * 0.045 * smoothstep(0.02, 0.15, t)
+    const band = Math.abs(Math.sin(sy * 0.55 + spec.seed))
+    taper *= 1 - smoothstep(0.78, 1, band) * 0.12 * smoothstep(0.02, 0.15, t)
     const k = rad > 1e-4 && Math.sqrt(1 - t * t) > 1e-4 ? 1 / Math.sqrt(1 - t * t) : 0
     pos.setXYZ(i, v.x * k * taper * R * rim + shiftX, sy, v.z * k * taper * R * rim + shiftZ)
   }
   g.computeVertexNormals()
   const grass = col(palette.grassA), grass2 = col(palette.grassB), dirt = col(palette.dirt), rock = col(palette.rock), rockD = col(palette.rockDark)
-  const sand = col('#b39072'), slate = col('#6f6872')
+  const sand = col('#d6b48c'), slate = col('#5d6c7c')
   setColors(g, (p, n, o) => {
     if (p.y > -0.25 && n.y > 0.2) {
       o.copy(grass).lerp(grass2, fbm(p.x * 0.3 + spec.seed, p.z * 0.3, 2))
@@ -385,11 +385,11 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
       o.copy(dirt).lerp(rock, smoothstep(0.02, 0.22, t)).lerp(rockD, smoothstep(0.45, 1, t))
       // sediment bands: alternating warm sandstone / cool slate layers, wobbling along the rim
       const wob = noise2(Math.atan2(p.z, p.x) * 2 + spec.seed, 1.7) * 0.9
-      const b = Math.sin((p.y + wob) * 1.15 + spec.seed)
-      o.lerp(b > 0.35 ? sand : slate, smoothstep(0.35, 0.9, Math.abs(b)) * 0.35 * smoothstep(0.03, 0.12, t))
+      const b = Math.sin((p.y + wob) * 0.55 + spec.seed)
+      o.lerp(b > 0.2 ? sand : slate, smoothstep(0.3, 0.85, Math.abs(b)) * 0.6 * smoothstep(0.03, 0.12, t))
       // dark seams under each ledge + mossy tops of ledges
       if (n.y < -0.35) o.multiplyScalar(0.62)
-      if (n.y > 0.45 && t > 0.05) o.lerp(grass, 0.45)
+      if (n.y > 0.45 && t > 0.05) o.lerp(grass, 0.75)
       o.multiplyScalar(0.88 + noise2(p.y * 1.4, spec.seed) * 0.24)
     }
   })
