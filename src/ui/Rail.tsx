@@ -1,3 +1,4 @@
+import { useIsCompact } from './SelectionActions'
 import { useWorld } from '../state/worldStore'
 import type { ObjType, WeatherId } from '../state/types'
 import { ADDABLE, OBJECT_KINDS } from '../world/objects'
@@ -103,12 +104,16 @@ function GravityPanel() {
 
 /** Collapsible tool rail (bottom-left) and its panels. */
 export function Rail() {
+  const compact = useIsCompact()
+  const hasSel = useWorld((s) => s.selectedId !== null)
   const panel = useWorld((s) => s.panel)
   const railOpen = useWorld((s) => s.railOpen)
   const setRailOpen = useWorld((s) => s.setRailOpen)
   const resetCam = useWorld((s) => s.requestCameraReset)
   const toast = useWorld((s) => s.toast)
   const altered = useWorld((s) => s.gravity !== 1 || s.orbit)
+  // phones: one bottom bar — while something is selected its actions take the rail's place
+  if (compact && hasSel) return null
   return (
     <div className={`rail-wrap${railOpen ? '' : ' closed'}`}>
       {railOpen && panel && panel !== 'save' && panel !== 'share' && (

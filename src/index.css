@@ -200,7 +200,7 @@ button { font: inherit; color: inherit; }
   .toasts { top: calc(108px + env(safe-area-inset-top)); width: calc(100vw - 24px); }
   .toast { white-space: normal; text-align: center; }
   .hint { bottom: calc(150px + env(safe-area-inset-bottom)); flex-direction: column; align-items: stretch; }
-  .selection-bar { position: fixed; left: 12px; right: 12px; bottom: calc(132px + env(safe-area-inset-bottom)); justify-content: space-between; padding: 4px 6px 4px 14px; }
+  .selection-bar { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); justify-content: space-between; padding: 4px 6px 4px 14px; }
   .selection-bar .tb-btn { width: 38px; height: 38px; }
 }
 
