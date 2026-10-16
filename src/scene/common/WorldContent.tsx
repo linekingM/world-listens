@@ -131,7 +131,7 @@ export function WorldContent() {
   }, [mats, windows, facade])
   useFrame(() => {
     const m = mats.city as THREE.MeshStandardMaterial
-    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 1.1
+    if ('emissiveIntensity' in m) m.emissiveIntensity = smoothstep(4, -5, env.sun.elevation) * 0.6
   })
 
   useEffect(() => () => {

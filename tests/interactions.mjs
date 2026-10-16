@@ -272,8 +272,12 @@ let savedDoc = null
 await test('save locally, change world, load save back', async () => {
   await page.click('[data-testid=open-save]')
   await page.fill('[data-testid=world-name]', '黄昏之城')
+  const poseBefore = await page.evaluate(() => window.__cam.position.toArray())
   await page.click('[data-testid=save-local]')
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('world-listens.saves.v1') || '[]').length > 0, null, { timeout: 120000 })
   const saves = await page.evaluate(() => JSON.parse(localStorage.getItem('world-listens.saves.v1') || '[]'))
+  // auto-framing glides back to where the user was
+  await page.waitForFunction((p) => { const c = window.__cam.position; return Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]) < 1.5 }, poseBefore, { timeout: 120000 })
   assert(saves.length >= 1 && saves[0].name === '黄昏之城', 'saved entry')
   savedDoc = saves[0].doc
   assert(saves[0].thumb && saves[0].thumb.startsWith('data:image/jpeg'), 'thumbnail')
@@ -310,6 +314,26 @@ await test('share link round-trips the whole world', async () => {
   assert(p2.page.errors.length === 0, 'errors in shared page ' + p2.page.errors.join('|'))
   await p2.ctx.close()
   await page.click('[data-testid=open-share]')
+})
+
+await test('combo surprise: starry night + weightless → meteor shower discovered', async () => {
+  await page.evaluate(() => { const s = window.__world.getState(); s.setTime(22.5, 'drag'); s.setWeather('starry'); s.setGravity(0) })
+  await page.waitForFunction(() => window.__surprises.activeSurprises.has('meteors'), null, { timeout: 60000 })
+  await page.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('流星雨')), null, { timeout: 30000 })
+  assert((await page.evaluate(() => JSON.parse(localStorage.getItem('world-listens.surprises')))).includes('meteors'), 'persisted')
+  await frames(page, 20)
+  await page.screenshot({ path: `${SHOTS}/T-surprise-meteors.png` })
+  await page.evaluate(() => { const s = window.__world.getState(); s.setGravity(1); s.setWeather('clear') })
+})
+
+await test('autosave: reload restores the edited world', async () => {
+  await page.evaluate(() => { const s = window.__world.getState(); s.setName('续存测试'); s.addObject('pine', [14, 0, -10]) })
+  const n = await st(page, (s) => s.objects.length)
+  await page.waitForTimeout(1500)
+  await page.goto(BASE + '/')
+  await page.waitForFunction(() => (window.__frames ?? 0) > 5, null, { timeout: 240000 })
+  await page.waitForFunction(() => window.__world.getState().name === '续存测试', null, { timeout: 30000 })
+  assert((await st(page, (s) => s.objects.length)) === n, 'object count after reload')
 })
 
 await test('reset world (two-step confirm)', async () => {

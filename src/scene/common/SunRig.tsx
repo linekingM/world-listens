@@ -54,7 +54,10 @@ export function SunRig() {
     L.sun.lerp(GREY, cover * 0.35)
     L.hemiI *= 1 + cover * 0.25 + mist * 0.2
     L.hemiSky.lerp(GREY, cover * 0.3)
-    L.fog.lerp(TMP.copy(env.sun.night > 0.5 ? NIGHT_MIST : MIST).lerp(L.fog, env.sun.night * 0.5), mist * 0.75).lerp(GREY, cover * 0.25 * env.sun.day)
+    // mist colour follows the light: pale silver by day, dusky rose at sunset, blue-grey at night
+    const lum = L.fog.r * 0.3 + L.fog.g * 0.59 + L.fog.b * 0.11
+    TMP.setRGB(lum, lum, lum).lerp(L.fog, 0.45).lerp(MIST, env.sun.day * (1 - env.sun.golden) * 0.6).lerp(NIGHT_MIST, env.sun.night * 0.6)
+    L.fog.lerp(TMP, mist * 0.8).lerp(GREY, cover * 0.25 * env.sun.day)
 
     const useMoon = env.sun.elevation < -3
     const d = useMoon ? sunAt(env.time + 12, moonDir).dir : env.sun.dir

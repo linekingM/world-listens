@@ -102,9 +102,10 @@ export function CloudsA() {
     const L = env.light
     const cover = env.weather.cover
     tint.copy(L.fog).lerp(L.hemiSky, 0.3).lerp(WHITE, env.sun.day * (0.35 + (1 - env.sun.golden) * 0.4)).lerp(GREY, cover * 0.45 * env.sun.day)
+    tint.lerp(L.fog, env.weather.mist * 0.55)
     group.current.traverse((o) => {
       const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined
-      if (m && 'emissive' in m) m.emissive.copy(tint).multiplyScalar((0.3 + env.sun.day * (0.3 + (1 - env.sun.golden) * 0.25)) * (1 - cover * 0.25)).add(WARM.copy(L.sun).multiplyScalar(env.sun.golden * 0.18 * (1 - cover)))
+      if (m && 'emissive' in m) m.emissive.copy(tint).multiplyScalar((0.3 + env.sun.day * (0.3 + (1 - env.sun.golden) * 0.25)) * (1 - cover * 0.25) * (1 - env.weather.mist * 0.3)).add(WARM.copy(L.sun).multiplyScalar(env.sun.golden * 0.18 * (1 - cover)))
     })
   })
   return (
