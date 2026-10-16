@@ -113,8 +113,10 @@ export function WorldContent() {
   // near/mid trees use the hand-modelled CC0 assets; distant fogged groves keep the cheap procedural ones
   // WIP: asset trees behind ?assets=1 until their rendering is verified
   const useAssets = typeof location !== 'undefined' && new URLSearchParams(location.search).has('assets')
-  const isNear = (s: { x: number; z: number }) => useAssets && s.z > -190 && Math.abs(s.x - roadX(s.z)) < 75
-  const nearSpots = useMemo(() => allSpots.filter(isNear), [allSpots])
+  // near = within ~65 m of the home camera and by the avenue; beyond that the cheap procedural trees take over (LOD by distance)
+  const isNear = (s: { x: number; z: number }) => useAssets && Math.hypot(s.x - 8, s.z - 38) < 95 && s.z < 30 && Math.abs(s.x - roadX(s.z)) < 40
+  // quality > quantity: keep ~55% of the near spots for the detailed asset trees, drop the rest entirely
+  const nearSpots = useMemo(() => allSpots.filter((s) => isNear(s) && ((s.tint * 17.3 + s.x * 0.013) % 1) < 0.55), [allSpots])
   const spots = useMemo(() => allSpots.filter((s) => !isNear(s)), [allSpots])
   const trees = useMemo(() => {
     const groups: { geo: THREE.BufferGeometry; spots: typeof spots }[] = []

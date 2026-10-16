@@ -172,3 +172,12 @@ export function addFlagstones(mat: THREE.Material) {
         }`)
   })
 }
+
+/** Canopy shading: keep the baked (spherical) normals on both faces of double-sided leaf cards
+ *  instead of flipping them, so a crown shades as one soft volume rather than a mess of cards. */
+export function addCanopyNormals(mat: THREE.Material) {
+  return chain(mat, 'canopyN', (s) => {
+    s.fragmentShader = s.fragmentShader.replace('#include <normal_fragment_begin>',
+      THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''))
+  })
+}
