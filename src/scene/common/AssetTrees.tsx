@@ -95,9 +95,19 @@ const TINT_WARM = new THREE.Color('#fff4d8'), TINT_COOL = new THREE.Color('#e4f4
 // the kit's leaf texture is a deep forest green; lift it towards the fresh spring palette of the meadow
 // muted olive/sage so the crowns sit in the soft clay world (no chartreuse); pines lifted out of near-black
 const LEAF_A = new THREE.Color(1.12, 1.1, 0.86), LEAF_B = new THREE.Color(1.26, 1.13, 0.78), PINE = new THREE.Color(1.25, 1.3, 1.1)
+// soft tinted contact pocket under each tree trunk (grounds the trees; olive, not black)
+const pocketTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64
+  const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 0, 32, 32, 32)
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64)
+  return new THREE.CanvasTexture(c)
+})()
+const pocketGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
+const pocketMat = new THREE.MeshBasicMaterial({ map: pocketTex, color: '#2c3a24', transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, fog: true })
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler()
 
-function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift }: { name: string; spots: TreeSpot[]; targetH: number; pine?: boolean; shadows?: boolean; uvShift?: [number, number] }) {
+function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift, shrink = true }: { name: string; spots: TreeSpot[]; targetH: number; pine?: boolean; shadows?: boolean; uvShift?: [number, number]; shrink?: boolean }) {
   const base = useAssetModel(name)
   // recolour flower cards by sliding their UVs to another cell of the flower atlas (lavender / peach / ...)
   const model = useMemo(() => {
@@ -113,6 +123,7 @@ function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift }:
     return { ...base, parts }
   }, [base, uvShift])
   const refs = useRef<(THREE.InstancedMesh | null)[]>([])
+  const pocket = useRef<THREE.InstancedMesh>(null)
   useLayoutEffect(() => {
     const c = new THREE.Color()
     refs.current.forEach((m, pi) => {
@@ -121,7 +132,7 @@ function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift }:
       spots.forEach((t, i) => {
         // no foreground giants walling off the path: trees right next to the camera get scaled down
         const cd = Math.hypot(t.x - 8, t.z - 38)
-        const k = (t.s * targetH * (cd < 30 ? 0.62 + (cd / 30) * 0.38 : 1)) / model.height
+        const k = (t.s * targetH * (shrink && cd < 30 ? 0.62 + (cd / 30) * 0.38 : 1)) / model.height
         // a few degrees of lean, never two trees alike
         _e.set(Math.sin(t.rot * 3.1) * 0.06, t.rot, Math.cos(t.rot * 2.3) * 0.06)
         _q.setFromEuler(_e)
@@ -138,6 +149,16 @@ function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift }:
       if (m.instanceColor) m.instanceColor.needsUpdate = true
       m.computeBoundingSphere()
     })
+    const pm = pocket.current
+    if (pm) {
+      spots.forEach((t, i) => {
+        const r = t.s * targetH * 0.42
+        _q.identity(); _s.set(r, 1, r); _p.set(t.x, t.y + 0.04, t.z)
+        pm.setMatrixAt(i, _m.compose(_p, _q, _s))
+      })
+      pm.instanceMatrix.needsUpdate = true
+      pm.computeBoundingSphere()
+    }
   }, [spots, model, targetH])
   if (!spots.length) return null
   return (
@@ -145,6 +166,7 @@ function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift }:
       {model.parts.map((p, i) => (
         <instancedMesh key={i} ref={(r) => { refs.current[i] = r }} args={[p.geo, p.mat, spots.length]} castShadow={shadows} receiveShadow frustumCulled={false} raycast={() => null} />
       ))}
+      {shadows && <instancedMesh ref={pocket} args={[pocketGeo, pocketMat, spots.length]} frustumCulled={false} raycast={() => null} renderOrder={1} />}
     </group>
   )
 }
@@ -189,11 +211,11 @@ export function AssetTreeVisual({ name, targetH, override, shadows = true, tint 
 // Flower_3's cards sit on the pink centre cell of the atlas (v from the top): shift to lavender / peach
 const FLORA_SETS: { name: string; h: number; uv?: [number, number] }[] = [
   { name: 'Bush_Common', h: 1.8 },
-  { name: 'Flower_3_Group', h: 1.15, uv: [0.25, -0.3] }, // lavender
-  { name: 'Flower_3_Group', h: 1.05, uv: [-0.28, -0.31] }, // peach
-  { name: 'Flower_3_Group', h: 1.0 }, // pink
-  { name: 'Flower_4_Group', h: 1.2 }, // yellow meadow
-  { name: 'Flower_3_Group', h: 1.1, uv: [0.25, -0.3] }, // lavender (second drift)
+  { name: 'Flower_3_Group', h: 1.5, uv: [0.25, -0.3] }, // lavender
+  { name: 'Flower_3_Group', h: 1.35, uv: [-0.28, -0.31] }, // peach
+  { name: 'Flower_3_Group', h: 1.3 }, // pink
+  { name: 'Flower_4_Group', h: 1.5 }, // yellow meadow
+  { name: 'Flower_3_Group', h: 1.4, uv: [0.25, -0.3] }, // lavender (second drift)
 ]
 
 /** Bushes, flowering shrubs and wildflower clumps in loose drifts along both path edges (near stretch only). */
@@ -206,13 +228,15 @@ export function PathFlora() {
       if (r() < 0.22) { z -= 3 + r() * 4; continue } // gaps so the grass stays the larger shape
       for (const side of [-1, 1]) {
         if (r() < 0.2) continue
-        const off = ROAD_WIDTH / 2 + 1.3 + r() * 2.6
+        // flowers spill right up to the flagstone edge (where the meadow grass thins), bushes sit further out
+        const edge = r() < 0.6
+        const off = edge ? ROAD_WIDTH / 2 + 0.5 + r() * 1.3 : ROAD_WIDTH / 2 + 2.2 + r() * 2.2
         const x = roadX(z) + side * off
         if (lamps.some((l) => Math.abs(l.z - z) < 2.2 && l.side === side)) continue
         // flowers hug the edge in clumps of 1-3, bushes sit a little further out
         // edge flowers: mostly lavender, some yellow meadow clumps, a little peach / pink
         const q = r()
-        const pick = off < ROAD_WIDTH / 2 + 2.6 ? (q < 0.45 ? 1 : q < 0.7 ? 4 : q < 0.85 ? 2 : q < 0.95 ? 3 : 5) : 0
+        const pick = edge ? (q < 0.45 ? 1 : q < 0.7 ? 4 : q < 0.85 ? 2 : q < 0.95 ? 3 : 5) : 0
         const n = pick >= 1 ? 1 + Math.floor(r() * 3) : 1
         for (let j = 0; j < n; j++) {
           const xx = x + side * j * 0.7, zz = z + (r() - 0.5) * 1.4
@@ -224,7 +248,7 @@ export function PathFlora() {
   }, [])
   return (
     <>
-      {FLORA_SETS.map((f, i) => <ModelInstances key={i} name={f.name} spots={groups[i]} targetH={f.h} shadows={i === 0} uvShift={f.uv} />)}
+      {FLORA_SETS.map((f, i) => <ModelInstances key={i} name={f.name} spots={groups[i]} targetH={f.h} shadows={i === 0} uvShift={f.uv} shrink={i === 0} />)}
     </>
   )
 }

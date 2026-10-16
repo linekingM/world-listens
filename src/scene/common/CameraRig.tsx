@@ -69,7 +69,7 @@ export function CameraRig() {
     })
   }, [camera])
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const c = ctl.current
     if (tween.current && c) {
       const tw = tween.current
@@ -89,6 +89,8 @@ export function CameraRig() {
       c.target.y = MathUtils.clamp(c.target.y, 0, 80)
     }
     ;(window as unknown as { __cam: unknown }).__cam = camera
+    ;(window as unknown as { __renderer: unknown }).__renderer = state.gl
+    ;(window as unknown as { __scene: unknown }).__scene = state.scene
     ;(window as unknown as { __frames: number }).__frames = ((window as unknown as { __frames: number }).__frames ?? 0) + 1
   })
   return (
