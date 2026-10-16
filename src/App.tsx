@@ -5,6 +5,7 @@ import { TopActions } from './ui/TopActions'
 import { Hint, StatusChips, Title, Toasts, useAppEffects } from './ui/Feedback'
 import { useWorld } from './state/worldStore'
 import { overlayRef } from './ui/overlay'
+import { SelectionBar } from './ui/SelectionActions'
 
 export default function App() {
   const style = useWorld((s) => s.style)
@@ -20,6 +21,7 @@ export default function App() {
         <StatusChips />
         <Toasts />
         <Rail />
+        <SelectionBar />
         <SunDial />
         <Hint />
       </div>

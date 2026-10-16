@@ -9,7 +9,7 @@ import type { CloudObject } from '../../../state/types'
 import { beginDrag, occludedByGround } from '../../systems/InteractionController'
 import { cloudHitMat } from '../../objects/WorldObjects'
 import { overlayRef } from '../../../ui/overlay'
-import { Icon } from '../../../ui/icons'
+import { CloudActions, useIsCompact } from '../../../ui/SelectionActions'
 import { rng } from '../../../lib/random'
 
 const WHITE = new THREE.Color('#ffffff'), GREY = new THREE.Color('#9aa6b4')
@@ -22,6 +22,18 @@ function gatherSpecs(): CloudSpec[] {
   const out: CloudSpec[] = []
   for (let i = 0; i < 7; i++) out.push({ pos: [-170 + i * 52 + r() * 20, 70 + r() * 25, -120 - r() * 160], scale: 1.1 + r() * 0.7, seed: 90 + i })
   return out
+}
+
+function CloudToolbar({ c, y }: { c: CloudObject; y: number }) {
+  const compact = useIsCompact()
+  if (compact) return null
+  return (
+    <Html position={[0, y, 0]} center portal={overlayRef as React.MutableRefObject<HTMLElement>} zIndexRange={[30, 10]}>
+      <div className="obj-toolbar glass" data-testid="cloud-toolbar" onPointerDown={(e) => e.stopPropagation()}>
+        <CloudActions cloud={c} />
+      </div>
+    </Html>
+  )
 }
 
 function HeroCloud({ c, selected }: { c: CloudObject; selected: boolean }) {
@@ -55,20 +67,7 @@ function HeroCloud({ c, selected }: { c: CloudObject; selected: boolean }) {
         onPointerOver={(e) => { if (!occludedByGround(e.ray, e.distance)) { e.stopPropagation(); document.body.style.cursor = 'grab' } }}
         onPointerOut={() => { document.body.style.cursor = '' }}
       />
-      {selected && (
-        <Html position={[0, 12 * c.scale + 4, 0]} center portal={overlayRef as React.MutableRefObject<HTMLElement>} zIndexRange={[30, 10]}>
-          <div className="obj-toolbar glass" data-testid="cloud-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-            <span className="tb-label">云朵</span>
-            <button className="tb-btn wide" data-act="化为浮岛" onClick={() => {
-              const st = useWorld.getState()
-              st.cloudToIsland(c.id)
-              st.toast('云朵凝结成了一座浮岛', 'ok')
-            }}>
-              <Icon name="island" size={18} /><span>化为浮岛</span>
-            </button>
-          </div>
-        </Html>
-      )}
+      {selected && <CloudToolbar c={c} y={12 * c.scale + 4} />}
     </group>
   )
 }

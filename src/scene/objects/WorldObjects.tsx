@@ -8,7 +8,7 @@ import { useEnv, useStyleDef } from '../common/EnvContext'
 import { getMaterial } from '../common/materials'
 import { Waterfall } from '../common/Waterfall'
 import { islandGeometries, objectGeometry } from './geoCache'
-import { getSim, stepSim, sims } from '../systems/simulation'
+import { getSim, stepSim } from '../systems/simulation'
 import { beginDrag } from '../systems/InteractionController'
 import { interaction } from '../systems/interaction'
 import { groundAt } from '../systems/picking'
@@ -16,7 +16,7 @@ import { OBJECT_KINDS, objectRadius } from '../../world/objects'
 import type { IslandSpec } from '../../world/layout'
 import { smoothstep } from '../../lib/random'
 import { overlayRef } from '../../ui/overlay'
-import { Icon } from '../../ui/icons'
+import { ObjectActions, useIsCompact } from '../../ui/SelectionActions'
 
 // ───────── shared bits ─────────
 function radialTexture(stops: [number, string][]) {
@@ -143,36 +143,13 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
   )
 })
 
-function ToolBtn({ icon, label, onClick, danger, active }: { icon: Parameters<typeof Icon>[0]['name']; label: string; onClick: () => void; danger?: boolean; active?: boolean }) {
-  return (
-    <button className={`tb-btn${danger ? ' danger' : ''}${active ? ' on' : ''}`} onClick={onClick} title={label} aria-label={label} data-act={label}>
-      <Icon name={icon} size={18} />
-    </button>
-  )
-}
-
 function ObjectToolbar({ obj, height }: { obj: WorldObject; height: number }) {
-  const st = useWorld.getState()
-  const kind = OBJECT_KINDS[obj.type]
-  const up = (patch: Partial<WorldObject>) => st.updateObject(obj.id, patch)
+  const compact = useIsCompact()
+  if (compact) return null
   return (
-    <Html position={[0, height, 0]} center portal={overlayRef as React.MutableRefObject<HTMLElement>} zIndexRange={[30, 10]} className="obj-toolbar-anchor">
+    <Html position={[0, height, 0]} center portal={overlayRef as React.MutableRefObject<HTMLElement>} zIndexRange={[30, 10]}>
       <div className="obj-toolbar glass" data-testid="obj-toolbar" onPointerDown={(e) => e.stopPropagation()}>
-        <span className="tb-label">{kind.label}</span>
-        <ToolBtn icon="rotL" label="向左转" onClick={() => up({ rotY: obj.rotY + Math.PI / 6 })} />
-        <ToolBtn icon="rotR" label="向右转" onClick={() => up({ rotY: obj.rotY - Math.PI / 6 })} />
-        <ToolBtn icon="minus" label="缩小" onClick={() => up({ scale: Math.max(0.4, +(obj.scale / 1.15).toFixed(2)) })} />
-        <ToolBtn icon="plus" label="放大" onClick={() => up({ scale: Math.min(kind.airborne ? 1.8 : 2.5, +(obj.scale * 1.15).toFixed(2)) })} />
-        {kind.airborne ? (
-          <>
-            <ToolBtn icon="up" label="升高" onClick={() => up({ pos: [obj.pos[0], Math.min(90, obj.pos[1] + 4), obj.pos[2]] })} />
-            <ToolBtn icon="down" label="降低" onClick={() => up({ pos: [obj.pos[0], Math.max(groundAt(obj.pos[0], obj.pos[2]) + 12, obj.pos[1] - 4), obj.pos[2]] })} />
-          </>
-        ) : (
-          <ToolBtn icon="float" label={obj.floating ? '落回地面' : '漂浮起来'} active={!!obj.floating} onClick={() => st.toggleFloat(obj.id)} />
-        )}
-        <span className="tb-sep" />
-        <ToolBtn icon="trash" label="删除" danger onClick={() => { st.removeObject(obj.id); sims.delete(obj.id); st.toast(`已删除${kind.label}`) }} />
+        <ObjectActions obj={obj} />
       </div>
     </Html>
   )
