@@ -32,7 +32,7 @@ export function SunRig() {
   }, [scene, gl, style])
 
   useFrame((state, rawDt) => {
-    const dt = Math.min(rawDt, 0.1)
+    const dt = Math.min(rawDt, 0.4)
     const st = useWorld.getState()
     // ── time (shortest way round the clock) ──
     let diff = st.time - env.time

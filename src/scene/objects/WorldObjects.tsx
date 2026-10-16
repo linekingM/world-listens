@@ -61,12 +61,33 @@ function islandTopY(spec: IslandSpec, x: number, z: number) {
 }
 
 // ───────── visuals ─────────
-const skirtTex = new THREE.TextureLoader().load('/tex/cloud.png')
+const skirtTex = (() => {
+  // soft procedural wisp: many faint overlapping puffs, fully transparent at every edge
+  const W = 256, H = 128
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H
+  const g = cv.getContext('2d')!
+  let seed = 9
+  const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+  for (let i = 0; i < 26; i++) {
+    const x = W * (0.2 + r() * 0.6), y = H * (0.35 + r() * 0.3), rad = H * (0.18 + r() * 0.22)
+    const grd = g.createRadialGradient(x, y, 0, x, y, rad)
+    grd.addColorStop(0, 'rgba(255,255,255,0.22)'); grd.addColorStop(0.6, 'rgba(255,255,255,0.08)'); grd.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = grd; g.fillRect(0, 0, W, H)
+  }
+  // feather the whole thing with an elliptical mask
+  g.globalCompositeOperation = 'destination-in'
+  const m = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2)
+  m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.55, 'rgba(0,0,0,0.8)'); m.addColorStop(1, 'rgba(0,0,0,0)')
+  g.setTransform(1, 0, 0, H / W, 0, H / 2 - H / 2 * 1)
+  g.fillStyle = m; g.fillRect(0, 0, W, W)
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace
+  return t
+})()
 const skirtMats: THREE.SpriteMaterial[] = []
 /** Soft cloud wisps clinging to an island's underside (sea-of-clouds mood). */
 function CloudSkirt({ radius, depth, seed }: { radius: number; depth: number; seed: number }) {
   const mats = useMemo(() => Array.from({ length: 4 }, (_, i) => {
-    const m = new THREE.SpriteMaterial({ map: skirtTex, transparent: true, depthWrite: false, opacity: 0.5, rotation: seed + i * 1.7 })
+    const m = new THREE.SpriteMaterial({ map: skirtTex, transparent: true, depthWrite: false, opacity: 0.5, fog: true })
     skirtMats.push(m)
     return m
   }), [seed])
@@ -96,7 +117,7 @@ export function IslandVisual({ variant, override }: { variant: number; override?
       {spec.trees.map((t, i) => (
         <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow={!override} receiveShadow={!override} />
       ))}
-      {false && !override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
+      {!override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
       {!override && spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.3} />}
     </>
   )
@@ -131,12 +152,13 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
   objRef.current = obj
 
   useFrame((state, rawDt) => {
-    const dt = Math.min(rawDt, 0.05)
     const o = objRef.current
     const st = useWorld.getState()
     const s = getSim(o.id)
     const t = state.clock.elapsedTime
-    stepSim(o, s, env.gravity, st.orbit, t, dt)
+    // fixed sub-steps: the same motion at 2 fps and at 120 fps (stable springs, no slow-motion on weak GPUs)
+    let left = Math.min(rawDt, 0.5)
+    while (left > 1e-4) { const h = Math.min(0.033, left); stepSim(o, s, env.gravity, st.orbit, t, h); left -= h }
     const bob = kind.airborne ? Math.sin(t * 0.35 + s.phase) * 0.8 : 0
     const b = body.current
     b.position.set(o.pos[0] + s.off.x, o.pos[1] + s.off.y + bob, o.pos[2] + s.off.z)
@@ -201,7 +223,7 @@ export function WorldObjects() {
     // island cloud skirts pick up sky / sun colour
     const L = env.light
     _c.copy(L.hemiSky).multiplyScalar(0.55 * L.hemiI).add(_c2.copy(L.sun).multiplyScalar(0.22 * L.sunI)).lerp(L.fog, 0.25)
-    for (const m of skirtMats) { m.color.copy(_c); m.opacity = 0.42 + env.weather.mist * 0.2 }
+    for (const m of skirtMats) { m.color.copy(_c); m.opacity = 0.8 + env.weather.mist * 0.2 }
   })
   return (
     <group>

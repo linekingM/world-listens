@@ -85,7 +85,7 @@ export function stepSim(o: WorldObject, s: Sim, g: number, orbitOn: boolean, t: 
   } else {
     // unwind to the nearest full turn so objects glide home
     const home = Math.round(s.orbit / (Math.PI * 2)) * Math.PI * 2
-    s.orbit += (home - s.orbit) * (1 - Math.exp(-dt * 1.4))
+    s.orbit += (home - s.orbit) * (1 - Math.exp(-dt * 2.2))
   }
   if (orbitOn || Math.abs(s.orbit % (Math.PI * 2)) > 1e-3) {
     tmp.set(o.pos[0] - orbitCenter.x, 0, o.pos[2] - orbitCenter.z)
