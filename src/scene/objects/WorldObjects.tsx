@@ -117,7 +117,7 @@ export function IslandVisual({ variant, override }: { variant: number; override?
       {spec.trees.map((t, i) => (
         <mesh key={i} geometry={g.tree} material={fol} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} scale={t.s * 0.85} rotation-y={i * 1.7} castShadow={!override} receiveShadow={!override} />
       ))}
-      {!override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
+      {false && !override && <CloudSkirt radius={spec.radius} depth={spec.depth} seed={spec.seed} />}
       {!override && spec.waterfall && <Waterfall position={[spec.radius * 0.78, 0.2, spec.radius * 0.3]} rotationY={Math.PI / 2 + 0.35} height={spec.radius * 1.9} width={spec.radius * 0.3} />}
     </>
   )
