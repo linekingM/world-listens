@@ -186,6 +186,11 @@ await test('delete via toolbar; click empty space deselects', async () => {
   await page.click('[data-act=删除]')
   const s = await st(page, (s) => ({ n: s.objects.length, sel: s.selectedId }))
   assert(s.n === n0 - 1 && s.sel === null, 'deleted')
+  await page.click('[data-testid=toast-action]')
+  assert((await st(page, (s) => s.objects.length)) === n0, 'undo restored the object')
+  await page.waitForSelector('[data-testid=obj-toolbar]', { timeout: 60000 })
+  await page.click('[data-act=删除]')
+  assert((await st(page, (s) => s.objects.length)) === n0 - 1, 'deleted again')
   // select the default bench then click sky to deselect
   const bench = await st(page, (s) => s.objects.find((o) => o.type === 'house'))
   const p = await project(page, [bench.pos[0], bench.pos[1] + 1.2, bench.pos[2]])
