@@ -86,7 +86,7 @@ const skirtTex = (() => {
 const skirtMats: THREE.SpriteMaterial[] = []
 /** Soft cloud wisps clinging to an island's underside (sea-of-clouds mood). */
 function CloudSkirt({ radius, depth, seed }: { radius: number; depth: number; seed: number }) {
-  const mats = useMemo(() => Array.from({ length: 4 }, (_, i) => {
+  const mats = useMemo(() => Array.from({ length: 4 }, () => {
     const m = new THREE.SpriteMaterial({ map: skirtTex, transparent: true, depthWrite: false, opacity: 0.5, fog: true })
     skirtMats.push(m)
     return m
