@@ -3,7 +3,7 @@
 // Run: BASE=http://127.0.0.1:4174 node qa-tests/edge-probe.mjs
 import { chromium } from 'playwright'
 
-const BASE = process.env.BASE || 'http://127.0.0.1:4174'
+const BASE = process.env.BASE || 'http://127.0.0.1:4173'
 const results = []
 const assert = (c, m) => { if (!c) throw new Error(m) }
 async function test(name, fn) {

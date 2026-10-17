@@ -3,11 +3,12 @@
 // Asserts the corrected behaviour. Failures name the bug.
 import { chromium } from 'playwright'
 
-const BASE = process.env.BASE || 'http://127.0.0.1:4174'
+const BASE = process.env.BASE || 'http://127.0.0.1:4173'
 const results = []
 const openCtx = new Set()
 const assert = (c, m) => { if (!c) throw new Error(m) }
 async function test(name, fn) {
+  if (process.env.ONLY && !name.includes(process.env.ONLY)) return
   const t0 = Date.now()
   try { await fn(); results.push({ name, ok: true, s: (Date.now() - t0) / 1000 }); console.log('✔', name, `${((Date.now() - t0) / 1000).toFixed(1)}s`) }
   catch (e) { results.push({ name, ok: false, err: String(e.message || e).slice(0, 400) }); console.log('✘', name, '—', e.message) }
@@ -119,7 +120,8 @@ await test('undo after reset does not duplicate ids; plain undo still restores',
   await ctx.close()
 })
 
-await test('re-clicking the active weather does not move the clock; switching still does', async () => {
+// Rejected finding #5 (docs/reviews/grok-qa.md): re-clicking a weather preset re-applies its time jump by design (e.g. 跳到黄昏), so this probe is skipped.
+if (process.env.WEATHER_RECLICK) await test('re-clicking the active weather does not move the clock; switching still does', async () => {
   const { ctx, page } = await boot({ query: '?fresh&t=10' })
   const r = await page.evaluate(() => {
     const api = window.__world.getState()
@@ -328,20 +330,22 @@ await test('sun-dial drag does not stick after the sun glyph unmounts at the hor
   await ctx.close()
 })
 
-await test('deleting a placed tree disposes its cloned geometries', async () => {
+await test('adding and deleting trees does not grow GPU geometries (shared models, no per-tree clones)', async () => {
   const { ctx, page } = await boot({ query: '?fresh&t=10' })
   await frames(page, 2)
+  // warm the tree models once so their shared geometry is uploaded
+  await page.evaluate(() => { window.__probeIds = [0, 1, 2].map((i) => window.__world.getState().addObject('tree', [6 + i * 3, 0, 8])) })
+  await frames(page, 6)
+  await page.evaluate(() => window.__probeIds.forEach((id) => window.__world.getState().removeObject(id)))
+  await frames(page, 3)
   const before = await page.evaluate(() => window.__renderer.info.memory.geometries)
-  await page.evaluate(() => {
-    const id = window.__world.getState().addObject('tree', [6, 0, 8])
-    window.__probeId = id
-  })
-  await page.waitForFunction((n0) => window.__renderer.info.memory.geometries > n0 + 1, before, { timeout: 30000 })
-  await frames(page, 2)
+  await page.evaluate(() => { window.__probeIds = Array.from({ length: 10 }, (_, i) => window.__world.getState().addObject('tree', [4 + (i % 5) * 3, 0, 6 + Math.floor(i / 5) * 3])) })
+  await frames(page, 6)
   const mid = await page.evaluate(() => window.__renderer.info.memory.geometries)
-  await page.evaluate(() => window.__world.getState().removeObject(window.__probeId))
+  await page.evaluate(() => window.__probeIds.forEach((id) => window.__world.getState().removeObject(id)))
   await frames(page, 3)
   const after = await page.evaluate(() => window.__renderer.info.memory.geometries)
+  console.log('   geometries', before, mid, after)
   assert(after <= before + 1, `geometries leaked: before ${before} mid ${mid} after ${after}`)
   await ctx.close()
 })
