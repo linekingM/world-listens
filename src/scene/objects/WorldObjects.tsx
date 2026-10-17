@@ -9,6 +9,7 @@ import { getMaterial } from '../common/materials'
 import { Waterfall } from '../common/Waterfall'
 import { ASSETS_ON, AssetTreeVisual } from '../common/AssetTrees'
 import { islandGeometries, objectGeometry } from './geoCache'
+import { lanternGlassGeo } from '../../world/geometry'
 import { getSim, stepSim } from '../systems/simulation'
 import { beginDrag } from '../systems/InteractionController'
 import { interaction } from '../systems/interaction'
@@ -43,7 +44,7 @@ const ringTex = (() => {
 const planeGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
 const ringMat = new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, toneMapped: false, color: '#ffffff', polygonOffset: true, polygonOffsetFactor: -4 })
 export const bulbMat = new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false })
-const bulbGeo = new THREE.SphereGeometry(0.13, 8, 6)
+const bulbGeo = lanternGlassGeo()
 const noRaycast = () => null
 function outlineMaterial(thickness: number) {
   const m = new THREE.MeshBasicMaterial({ color: '#ffe1a8', side: THREE.BackSide, transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false, fog: false })
@@ -152,7 +153,7 @@ export function ObjectVisual({ obj, override }: { obj: Pick<WorldObject, 'type' 
   return (
     <>
       <mesh geometry={geo} material={override ?? getMaterial(style, role)} castShadow={!override} receiveShadow={!override} raycast={override ? noRaycast : undefined} />
-      {!override && obj.type === 'lamp' && <mesh geometry={bulbGeo} material={bulbMat} position={[-0.82, 4.05, 0]} />}
+      {!override && obj.type === 'lamp' && <mesh geometry={bulbGeo} material={bulbMat} position={[-0.82, 4.03, 0]} />}
     </>
   )
 }

@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useEnv, useStyleDef } from './EnvContext'
 import {
-  buildCity, buildLamp, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
+  buildCity, buildLamp, lanternGlassGeo, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
 } from '../../world/geometry'
 import { cityBuildings, lampSpots, roadX, terrainHeight, treeSpots } from '../../world/layout'
 import { getMaterial } from './materials'
@@ -44,6 +44,7 @@ function Lamps() {
   const spots = useMemo(() => lampSpots(), [])
   const opts = useMemo(() => ({ lowPoly: style.lowPoly, palette: style.palette }), [style])
   const pole = useMemo(() => buildLamp(opts), [opts])
+  const glassGeo = useMemo(() => lanternGlassGeo(), [])
   const poleMat = getMaterial(style, 'prop')
   const bulbMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false }), [])
   const poolMat = useMemo(() => {
@@ -84,7 +85,7 @@ function Lamps() {
         return (
           <group key={i} position={[l.x, y, l.z]} rotation-y={ang}>
             <mesh geometry={pole} material={poleMat} castShadow />
-            <mesh position={[-0.82, 4.05, 0]} material={bulbMat}><sphereGeometry args={[0.13, 8, 6]} /></mesh>
+            <mesh position={[-0.82, 4.03, 0]} material={bulbMat} geometry={glassGeo} />
             <mesh position={[-1.8, 0.1, 0]} rotation-x={-Math.PI / 2} material={poolMat}><circleGeometry args={[5.5, 28]} /></mesh>
           </group>
         )

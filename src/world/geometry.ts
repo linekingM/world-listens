@@ -714,15 +714,33 @@ export function buildMountains({ lowPoly, palette }: BuildOpts) {
   })
 }
 
+/** Old-town lantern post: iron plinth + tapered post with brass collars, curled shepherd's-hook arm and a caged
+ *  lantern (its glowing glass is a separate mesh centred at (-0.82, 4.03, 0)). */
 export function buildLamp({ lowPoly }: BuildOpts) {
-  const pole = new THREE.CylinderGeometry(0.06, 0.09, 4.2, lowPoly ? 5 : 8)
-  pole.translate(0, 2.1, 0)
-  const arm = new THREE.BoxGeometry(0.9, 0.07, 0.07)
-  arm.translate(-0.42, 4.15, 0)
-  solidColor(pole, '#2c3138'); solidColor(arm, '#2c3138')
-  const g = mergeGeometries([pole, arm].map((p) => normalizeAttrs(p)))!
-  return g
+  const seg = lowPoly ? 6 : 10
+  const IRON = '#2b2723', BRASS = '#b48c4e'
+  const parts: THREE.BufferGeometry[] = []
+  const add = (geo: THREE.BufferGeometry, c: string, x = 0, y = 0, z = 0) => { geo.translate(x, y, z); solidColor(geo, c); parts.push(geo) }
+  add(new THREE.CylinderGeometry(0.17, 0.26, 0.34, seg), IRON, 0, 0.17)
+  add(new THREE.CylinderGeometry(0.2, 0.2, 0.06, seg), BRASS, 0, 0.37)
+  add(new THREE.CylinderGeometry(0.05, 0.085, 4.3, seg), IRON, 0, 2.5)
+  add(new THREE.CylinderGeometry(0.09, 0.09, 0.08, seg), BRASS, 0, 2.7)
+  add(new THREE.CylinderGeometry(0.075, 0.075, 0.07, seg), BRASS, 0, 4.42)
+  add(new THREE.SphereGeometry(0.075, seg, 6), BRASS, 0, 4.72)
+  // shepherd's hook arm + decorative curl
+  const arc = new THREE.CubicBezierCurve3(new THREE.Vector3(0, 4.42, 0), new THREE.Vector3(-0.15, 4.85, 0), new THREE.Vector3(-0.72, 4.85, 0), new THREE.Vector3(-0.82, 4.42, 0))
+  add(new THREE.TubeGeometry(arc, lowPoly ? 8 : 16, 0.03, 6), IRON)
+  add(new THREE.TorusGeometry(0.11, 0.016, 5, 14), IRON, -0.3, 4.52)
+  // lantern: pyramid cap, corner bars, base plate
+  add(new THREE.ConeGeometry(0.2, 0.17, 4).rotateY(Math.PI / 4), BRASS, -0.82, 4.33)
+  add(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 5), IRON, -0.82, 4.44)
+  for (const [dx, dz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) add(new THREE.BoxGeometry(0.025, 0.44, 0.025), BRASS, -0.82 + dx * 0.11, 4.03, dz * 0.11)
+  add(new THREE.CylinderGeometry(0.15, 0.09, 0.07, 4).rotateY(Math.PI / 4), BRASS, -0.82, 3.78)
+  return mergeGeometries(parts.map((p) => normalizeAttrs(p)))!
 }
+
+/** Glowing lantern glass (pairs with buildLamp). */
+export const lanternGlassGeo = () => new THREE.BoxGeometry(0.19, 0.4, 0.19)
 
 // ───────────────────────────── rocks & street furniture ─────────────────────────────
 export function buildRock(variant: number, { lowPoly, palette }: BuildOpts) {
