@@ -85,6 +85,7 @@ export function SunRig() {
     fxUniforms.uValley.value = 0.22 + env.sun.golden * 0.4 + env.weather.mist * 0.3 + env.sun.night * 0.1
     fxUniforms.uLeafGlow.value = smoothstep(-3, 4, env.sun.elevation) * (1 - cover * 0.75)
     fxUniforms.uGlint.value = env.sun.golden * smoothstep(-2, 2, env.sun.elevation) * (1 - cover)
+    fxUniforms.uNight.value = env.sun.night * (1 - cover * 0.6)
     fxUniforms.uCloudShadow.value = (0.18 + cover * 0.35) * env.sun.day * (1 - mist * 0.6)
     ;(window as unknown as { __env: unknown }).__env = env
   })

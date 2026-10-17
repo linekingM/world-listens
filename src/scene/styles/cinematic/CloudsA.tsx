@@ -7,6 +7,7 @@ import { useEnv } from '../../common/EnvContext'
 import { useWorld } from '../../../state/worldStore'
 import type { CloudObject } from '../../../state/types'
 import { beginDrag, occludedByGround } from '../../systems/InteractionController'
+import { roamTouch } from '../../systems/interaction'
 import { cloudHitMat } from '../../objects/WorldObjects'
 import { overlayRef } from '../../../ui/overlay'
 import { CloudActions, useIsCompact } from '../../../ui/SelectionActions'
@@ -39,7 +40,7 @@ function CloudToolbar({ c, y }: { c: CloudObject; y: number }) {
 function HeroCloud({ c, selected }: { c: CloudObject; selected: boolean }) {
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     const st = useWorld.getState()
-    if (st.placing || e.button !== 0) return
+    if (st.placing || e.button !== 0 || roamTouch(e)) return
     if (occludedByGround(e.ray, e.distance)) return
     st.select(c.id)
     beginDrag(e, 'cloud', c.id, c.pos, c.pos[1])

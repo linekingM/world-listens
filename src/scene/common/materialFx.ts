@@ -146,6 +146,17 @@ export function addBounceLight(mat: THREE.Material, k: number) {
   })
 }
 
+/** Moonlit paving: at night the stones catch a cool lift of indirect light so the path reads into the distance. */
+export function addMoonlit(mat: THREE.Material, k = 0.3) {
+  return chain(mat, 'moon' + k, (s) => {
+    s.uniforms.uNight = fxUniforms.uNight
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uNight;')
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        reflectedLight.indirectDiffuse += diffuseColor.rgb * vec3(0.62, 0.72, 1.0) * ${k.toFixed(2)} * uNight;`)
+  })
+}
+
 /** Scale fog on one material (keeps floating islands readable as silhouettes in golden haze). */
 export function addFogScale(mat: THREE.Material, k: number) {
   return chain(mat, 'fogk' + k, (s) => {

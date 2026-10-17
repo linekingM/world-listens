@@ -12,7 +12,7 @@ import { islandGeometries, objectGeometry } from './geoCache'
 import { lanternGlassGeo } from '../../world/geometry'
 import { getSim, stepSim } from '../systems/simulation'
 import { beginDrag } from '../systems/InteractionController'
-import { interaction } from '../systems/interaction'
+import { interaction, roamTouch } from '../systems/interaction'
 import { groundAt } from '../systems/picking'
 import { OBJECT_KINDS, objectRadius } from '../../world/objects'
 import type { IslandSpec } from '../../world/layout'
@@ -206,7 +206,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
 
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     const st = useWorld.getState()
-    if (st.placing || e.button !== 0) return
+    if (st.placing || e.button !== 0 || roamTouch(e)) return
     st.select(obj.id)
     beginDrag(e, 'object', obj.id, obj.pos, kind.airborne ? obj.pos[1] : undefined)
   }

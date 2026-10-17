@@ -4,7 +4,7 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useEnv } from './EnvContext'
 import { useWorld } from '../../state/worldStore'
 import { beginDrag, occludedByGround } from '../systems/InteractionController'
-import { interaction } from '../systems/interaction'
+import { interaction, roamTouch } from '../systems/interaction'
 
 const DIST = 1400
 
@@ -36,7 +36,7 @@ export function SunHandle() {
     halo.current.visible = hover.current > 0.01
   })
   const onDown = (e: ThreeEvent<PointerEvent>) => {
-    if (useWorld.getState().placing || e.button !== 0) return
+    if (useWorld.getState().placing || e.button !== 0 || roamTouch(e)) return
     if (occludedByGround(e.ray, 900)) return
     beginDrag(e, 'sun', 'sun', [0, 0, 0])
   }

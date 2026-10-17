@@ -59,7 +59,7 @@ export function RoamHud() {
       <div className="roam-hint glass" data-testid="roam-hud">
         <span className="roam-title">自由漫游</span>
         <span className="roam-keys">
-          {compact ? '摇杆行走 · 拖动环顾 · 右侧按钮升降' : <><kbd>WASD</kbd> 行走 · 拖动环顾 · <kbd>空格</kbd>/<kbd>E</kbd> 上升 · <kbd>Q</kbd> 下降 · <kbd>Shift</kbd> 加速</>}
+          {compact ? '摇杆行走 · 单指环顾 · 双指捏合进退 · 双指上下推升降 · 双击飞往' : <><kbd>WASD</kbd> 行走 · 拖动环顾 · <kbd>空格</kbd>/<kbd>E</kbd> 上升 · <kbd>Q</kbd> 下降 · <kbd>Shift</kbd> 加速</>}
         </span>
         {!compact && <button className="pill small" onClick={lock} data-testid="roam-lock">锁定鼠标</button>}
         <button className="pill small" onClick={() => setCamMode('orbit')} data-testid="roam-exit"><Icon name="close" size={14} /> {compact ? '返回' : '返回 Esc'}</button>

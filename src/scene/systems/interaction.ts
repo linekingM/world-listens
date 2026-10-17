@@ -22,3 +22,7 @@ export const interaction = {
   ghostValid: false,
   hoverSun: false,
 }
+
+/** In free-roam, touches drive the camera (look / pinch / double-tap glide): they never select or drag things. */
+export const roamTouch = (e: { nativeEvent?: PointerEvent; pointerType?: string }) =>
+  (e.nativeEvent?.pointerType ?? e.pointerType) === 'touch' && (window as unknown as { __world?: { getState(): { camMode: string } } }).__world?.getState().camMode === 'roam'

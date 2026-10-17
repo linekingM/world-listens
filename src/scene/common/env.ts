@@ -48,4 +48,5 @@ export const fxUniforms = {
   uGust: { value: 0 },
   uCloudShadow: { value: 0.3 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+  uNight: { value: 0 },
 }

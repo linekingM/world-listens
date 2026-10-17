@@ -1,4 +1,4 @@
-import { addFlagstones } from './materialFx'
+import { addFlagstones, addMoonlit } from './materialFx'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ASSETS_ON, AssetTrees, PathFlora } from './AssetTrees'
 import * as THREE from 'three'
@@ -159,8 +159,8 @@ export function WorldContent() {
 
   const mats = useMemo(() => ({
     terrain: getMaterial(style, 'terrain'),
-    road: style.makeMaterial('road'),
-    path: addFlagstones(style.makeMaterial('road')),
+    road: addMoonlit(style.makeMaterial('road')),
+    path: addMoonlit(addFlagstones(style.makeMaterial('road'))),
     foliage: getMaterial(style, 'foliage'),
     city: getMaterial(style, 'city'),
     mountain: style.makeMaterial('mountain'),

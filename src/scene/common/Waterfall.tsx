@@ -30,7 +30,7 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
   const env = useEnv()
   const mat = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true,
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uSeed: { value: 0 }, uLen: { value: height }, uLand: { value: 1 }, uColor: { value: new THREE.Color(color) }, uLight: { value: new THREE.Color(1, 1, 1) } }]),
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uSeed: { value: 0 }, uLen: { value: height }, uLand: { value: 1 }, uNight: { value: 0 }, uColor: { value: new THREE.Color(color) }, uLight: { value: new THREE.Color(1, 1, 1) } }]),
     vertexShader: /* glsl */`
       #include <fog_pars_vertex>
       uniform float uLen;
@@ -49,7 +49,7 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
       }`,
     fragmentShader: /* glsl */`
       #include <fog_pars_fragment>
-      uniform float uTime; uniform float uSeed; uniform float uLen; uniform float uLand; uniform vec3 uColor; uniform vec3 uLight;
+      uniform float uTime; uniform float uSeed; uniform float uLen; uniform float uLand; uniform vec3 uColor; uniform vec3 uLight; uniform float uNight;
       varying vec2 vUv;
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
       float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
@@ -64,7 +64,7 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
         float a = edge * fade * (0.2 + pow(streaks, 2.0) * 0.5 + lip * 0.35);
         // lit, not glowing: albedo x incoming light, streaks only modulate it slightly
         vec3 c = uColor * uLight * (0.75 + streaks * 0.3 + lip * 0.2);
-        gl_FragColor = vec4(c, a * 0.75);
+        gl_FragColor = vec4(c, a * 0.75 * (1.0 - uNight * 0.35));
         #include <fog_fragment>
       }`,
   }), [color, height])
@@ -88,8 +88,9 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
     mat.uniforms.uTime.value = inner.uniforms.uTime.value = t
     const L = env.light
     const light = mat.uniforms.uLight.value as THREE.Color
-    light.copy(L.hemiSky).multiplyScalar(0.42 * L.hemiI).add(TMP.copy(L.sun).multiplyScalar(L.sunI * 0.2)).multiplyScalar(1 - env.sun.night * 0.55)
+    light.copy(L.hemiSky).multiplyScalar(0.42 * L.hemiI).add(TMP.copy(L.sun).multiplyScalar(L.sunI * 0.2)).multiplyScalar(1 - env.sun.night * 0.72)
     ;(inner.uniforms.uLight.value as THREE.Color).copy(light)
+    mat.uniforms.uNight.value = inner.uniforms.uNight.value = env.sun.night
 
     // fall length: from the lip down to the terrain under the foot (two passes: the foot drifts out as the fall grows)
     const g = root.current

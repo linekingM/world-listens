@@ -524,6 +524,55 @@ await test('mobile free-roam: joystick walks, drag looks, rail hidden, 返回 ex
   await mctx.close()
 })
 
+await test('mobile roam touch gestures: drag looks, pinch moves, two-finger drag rises, double-tap glides, no selection', async () => {
+  const { ctx: mctx, page: m } = await open({ width: 390, height: 844 }, { mobile: true, dpr: 1, query: '?t=15' })
+  await m.tap('[data-testid=rail-view]')
+  await m.tap('[data-testid=cam-roam]')
+  await m.waitForSelector('[data-testid=roam-joystick]')
+  const cdp = await mctx.newCDPSession(m)
+  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) })
+  const gesture = async (from, to, steps = 6) => {
+    await touch('touchStart', from)
+    for (let k = 1; k <= steps; k++) await touch('touchMove', from.map(([x, y], i) => [x + (to[i][0] - x) * k / steps, y + (to[i][1] - y) * k / steps]))
+    await touch('touchEnd', [])
+    await frames(m, 12)
+  }
+  const place = () => m.evaluate(() => { window.__cam.position.set(4, 4, 18); window.__roam.yaw = 0; window.__roam.pitch = 0; window.__roam.vel.set(0, 0, 0); window.__roam.gesture.fwd = window.__roam.gesture.rise = 0; window.__roam.glide = null })
+  const cam = () => m.evaluate(() => ({ p: window.__cam.position.toArray(), yaw: window.__roam.yaw, pitch: window.__roam.pitch }))
+  // one finger: look
+  await place(); await frames(m, 3)
+  let a = await cam()
+  await gesture([[220, 430]], [[130, 400]])
+  let c = await cam()
+  assert(Math.abs(c.yaw - a.yaw) > 0.25 && Math.abs(c.pitch - a.pitch) > 0.05, 'drag looks ' + JSON.stringify([a, c]))
+  // pinch apart: forward along the view
+  await place(); await frames(m, 3)
+  a = await cam()
+  await gesture([[160, 450], [230, 450]], [[80, 450], [310, 450]])
+  c = await cam()
+  assert(a.p[2] - c.p[2] > 4 && Math.abs(c.yaw) < 0.05, 'pinch moves forward ' + JSON.stringify([a.p, c.p]))
+  // two fingers up together: rise
+  await place(); await frames(m, 3)
+  a = await cam()
+  await gesture([[160, 520], [230, 520]], [[160, 380], [230, 380]])
+  c = await cam()
+  assert(c.p[1] - a.p[1] > 4 && Math.hypot(c.p[0] - a.p[0], c.p[2] - a.p[2]) < 2, 'two-finger drag rises ' + JSON.stringify([a.p, c.p]))
+  // double-tap the meadow ahead: glide there, stopping above the ground
+  await place(); await m.evaluate(() => { window.__roam.pitch = -0.35; window.__roam.tapMs = window.__roam.doubleTapMs = 8000 }); await frames(m, 3)
+  a = await cam()
+  for (let k = 0; k < 2; k++) { await touch('touchStart', [[195, 640]]); await touch('touchEnd', []) }
+  await m.waitForFunction(() => window.__roam.glide !== null || window.__cam.position.z < 15, null, { timeout: 30000 })
+  await frames(m, 30)
+  c = await cam()
+  const ground = await m.evaluate(([x, z]) => window.__world && window.__terrainH ? window.__terrainH(x, z) : null, [c.p[0], c.p[2]])
+  assert(a.p[2] - c.p[2] > 3, 'double-tap glides ' + JSON.stringify([a.p, c.p, ground]))
+  assert((await st(m, (s) => s.selectedId)) === null, 'touches in roam never select')
+  await m.screenshot({ path: 'shots/verify/mobile-roam.png' })
+  await m.tap('[data-testid=roam-exit]')
+  assert(m.errors.length === 0, m.errors.join(' | '))
+  await mctx.close()
+})
+
 await test('first-visit onboarding hint shows once and dismisses', async () => {
   const { ctx: hctx, page: h } = await open({ width: 1280, height: 800 }, { showHint: true })
   assert(await h.$('[data-testid=hint]'), 'hint visible')
