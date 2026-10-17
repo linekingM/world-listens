@@ -4,6 +4,7 @@
  * decides *what* is where. Later the editable world state will be seeded from here.
  */
 import { fbm, rng, smoothstep } from '../lib/random'
+import { sunsetViewAz } from './sun'
 
 export const ROAD_START = 40
 export const ROAD_END = -300
@@ -141,8 +142,6 @@ export const ISLANDS: IslandSpec[] = [
 ]
 
 const THREE_DEG = 180 / Math.PI
-/** Sunset gap centre (deg) from the hero camera. Original 18°; this arc sets at +26°, inside the ±10° window. */
-const SUNSET_VIEW_AZ = 18
 
 /** Small islands for user-created / cloud-born islands (variants 3..5). */
 export const SMALL_ISLANDS: IslandSpec[] = [
@@ -157,9 +156,10 @@ export function islandSpec(variant: number): IslandSpec {
 
 export interface CloudSpec { pos: [number, number, number]; scale: number; seed: number }
 
+/** Sunset gap centre is sunsetViewAz() (sunset azimuth − 8°, default 18), ±10°. */
 const keepSunsetWindow = (c: CloudSpec) => {
   const az = THREE_DEG * Math.atan2(c.pos[0] - 8, -(c.pos[2] - 38))
-  return Math.abs(az - SUNSET_VIEW_AZ) > 10 || c.pos[1] > 115
+  return Math.abs(az - sunsetViewAz()) > 10 || c.pos[1] > 115
 }
 
 /** Far cloud banks; `day` re-seeds layout/shape/density so each calendar day looks different. */

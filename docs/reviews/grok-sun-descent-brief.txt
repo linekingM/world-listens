@@ -1,0 +1,20 @@
+# IMPLEMENT NOW — two user-approved sun changes (world-listens). Change NOTHING else.
+No colours/halo/clouds shading/UI/buttons/tips. No build/test/deploy/screenshots (parent does build+test). Edit in this turn.
+
+## 1) Final descent angle (src/world/sun.ts, azimuth only; elevation curve unchanged)
+Now az = -154 - 180*clamp(dayT,-0.3,1.3): the last hour slides almost parallel to the horizon (~22° apparent descent).
+Use az = sunriseAz - 180*f(clamp(dayT,-0.3,1.3)), f smooth & strictly monotonic, f(0)=0, f(1)=1, slowing azimuth near
+sunset (symmetric near sunrise is fine), extra azimuth taken around midday. Suggested f(t)=t - a*sin(2πt)/(2π) (a<1).
+Tune a numerically so atan2(Δelev, Δaz·cos(elev)) from 18:15 to sunset (19:18) ≈ 50° (band 45–60°, not near-vertical).
+
+## 2) URL param ?sunset=<deg>
+Sunset azimuth relative to the default view axis (positive = right), default 26 (= current). Read once at startup
+(window.location.search, guard for non-browser/test envs), clamp to [-10, 60]. sunriseAz = sunsetAz - 180 + 360k such
+that the path keeps the same 180° sweep through the BEHIND side (with default 26: sunriseAz = -154, ends at -334 ≡ 26).
+No UI. Don't break existing URL/share-link parsing (check src/state/serialize.ts and wherever ?t= / ?q= etc. are read);
+share links needn't carry it.
+src/world/layout.ts SUNSET_VIEW_AZ (cloud sunset window, currently 18 = 26-8) must follow: sunsetAz - 8, read from the same
+param source (it may be computed at module load — make sure it gets the param value; export a tiny getter from sun.ts).
+
+Run `npx tsc -b`. Report: final formula + a, descent angle achieved, azimuth at 09:00/12:00/15:00/17:30/18:30 (default),
+files touched.
