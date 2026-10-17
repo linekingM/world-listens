@@ -1,4 +1,4 @@
-import type * as THREE from 'three'
+import * as THREE from 'three'
 import type { StyleDef } from '../styles/types'
 import { buildBench, buildHouse, buildIsland, buildLamp, buildRock, buildTree } from '../../world/geometry'
 import { islandSpec } from '../../world/layout'
@@ -37,5 +37,15 @@ export function islandGeometries(style: StyleDef, variant: number) {
     rock: memo(`${style.id}|island|${variant}`, () => buildIsland(spec, opts)),
     houses: spec.houses.map((h, i) => memo(`${style.id}|ih|${h.kind}|${(variant + i) % 6}`, () => buildHouse(h.kind, (variant + i) % 6, opts))),
     tree: memo(`${style.id}|it|${variant % 3}`, () => buildTree(0, opts, variant % 3)),
+    // same buffers, limited to the rock shell (for the selection outline)
+    shell: memo(`${style.id}|island-shell|${variant}`, () => {
+      const rock = memo(`${style.id}|island|${variant}`, () => buildIsland(spec, opts))
+      const g = new THREE.BufferGeometry()
+      for (const [k, a] of Object.entries(rock.attributes)) g.setAttribute(k, a)
+      if (rock.index) g.setIndex(rock.index)
+      g.setDrawRange(0, rock.userData.shellCount ?? Infinity)
+      g.boundingSphere = rock.boundingSphere
+      return g
+    }),
   }
 }

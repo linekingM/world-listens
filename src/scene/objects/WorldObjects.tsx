@@ -55,7 +55,7 @@ function outlineMaterial(thickness: number) {
   return m
 }
 export const outlineSmall = outlineMaterial(0.07)
-export const outlineIsland = outlineMaterial(0.32)
+export const outlineIsland = outlineMaterial(0.6)
 
 function islandTopY(spec: IslandSpec, x: number, z: number) {
   const r2 = (x * x + z * z) / Math.pow(spec.radius * 0.85, 2)
@@ -112,11 +112,12 @@ export function IslandVisual({ variant, override }: { variant: number; override?
   const rock = override ?? getMaterial(style, 'rock'), bld = override ?? getMaterial(style, 'building'), fol = override ?? getMaterial(style, 'foliage')
   return (
     <>
-      <mesh geometry={g.rock} material={rock} castShadow={!override} receiveShadow={!override} />
-      {spec.houses.map((h, i) => (
+      <mesh geometry={override ? g.shell : g.rock} material={rock} castShadow={!override} receiveShadow={!override} />
+      {/* the outline is one clean silhouette of the rock: houses, trees and the waterfall are not outlined */}
+      {!override && spec.houses.map((h, i) => (
         <mesh key={i} geometry={g.houses[i]} material={bld} position={[h.x, islandTopY(spec, h.x, h.z), h.z]} rotation-y={h.rot} scale={h.s} castShadow={!override} receiveShadow={!override} />
       ))}
-      {spec.trees.map((t, i) => {
+      {!override && spec.trees.map((t, i) => {
         const proc = <mesh geometry={g.tree} material={fol} scale={t.s * 0.85} castShadow={!override} receiveShadow={!override} />
         return (
           <group key={i} position={[t.x, islandTopY(spec, t.x, t.z) - 0.1, t.z]} rotation-y={i * 1.7}>
@@ -196,7 +197,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
     const vis = env.sun.day * 0.65 + 0.2
     blobMat.opacity = (kind.airborne ? 0.36 * smoothstep(90, 15, height) : 0.55 * smoothstep(16, 0, height)) * vis * (1 - env.weather.mist * 0.5)
     bm.visible = blobMat.opacity > 0.01
-    if (selected) { outlineSmall.opacity = outlineIsland.opacity = 0.55 + Math.sin(t * 3) * 0.25 }
+    if (selected) { outlineSmall.opacity = 0.62 + Math.sin(t * 3) * 0.22; outlineIsland.opacity = 0.78 + Math.sin(t * 3) * 0.17 }
     if (ring.current) {
       ring.current.position.set(b.position.x, (kind.airborne ? b.position.y + radius * 0.17 : gy) + 0.1, b.position.z)
       ring.current.scale.setScalar(radius * 2.5 * (1 + Math.sin(t * 3) * 0.03))

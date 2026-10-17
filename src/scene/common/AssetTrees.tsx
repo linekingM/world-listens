@@ -209,13 +209,42 @@ function tintedLeaf(src: THREE.Material, tint: number, pine?: boolean) {
   return m
 }
 
+// selection outline on leaf cards: same hull material but cut by the leaf alpha, so the glow follows the real
+// crown silhouette instead of outlining every card quad; opacity stays tied to the (pulsing) source material
+const outlineLeafCache = new WeakMap<THREE.Material, Map<string, THREE.Material>>()
+function outlineLeaf(src: THREE.Material, leaf: THREE.Material) {
+  const map = (leaf as THREE.MeshStandardMaterial).map
+  if (!map) return src
+  let per = outlineLeafCache.get(src)
+  if (!per) outlineLeafCache.set(src, (per = new Map()))
+  let m = per.get(map.uuid)
+  if (!m) {
+    const c = (src as THREE.MeshBasicMaterial).clone()
+    c.map = map
+    c.alphaTest = Math.max(0.3, (leaf as THREE.MeshStandardMaterial).alphaTest - 0.1)
+    c.side = THREE.DoubleSide
+    // own hull: grow the cards along their (canopy) normals, then push them back along the view ray so the glow
+    // hides behind the real leaves and only shows past the crown's silhouette
+    c.onBeforeCompile = (s) => {
+      s.vertexShader = s.vertexShader
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n transformed += normalize(normal) * 0.22;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\n mvPosition.xyz += normalize(mvPosition.xyz) * 1.2; gl_Position = projectionMatrix * mvPosition;')
+      s.fragmentShader = s.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = diffuse;')
+    }
+    c.customProgramCacheKey = () => src.customProgramCacheKey() + '|leafcut'
+    Object.defineProperty(c, 'opacity', { get: () => src.opacity, set: () => {} })
+    per.set(map.uuid, (m = c))
+  }
+  return m
+}
+
 /** A single (non-instanced) asset tree for editable objects and island groves; base at y=0, height = targetH. */
 export function AssetTreeVisual({ name, targetH, override, shadows = true, tint = 0.5, pine }: { name: string; targetH: number; override?: THREE.Material; shadows?: boolean; tint?: number; pine?: boolean }) {
   const model = useAssetModel(name)
   const k = targetH / model.height
   // per-object leaf colour from cached tinted materials sharing the shader program; bark uses the shared material
   const mats = useMemo(() => model.parts.map((p) => {
-    if (override) return override
+    if (override) return p.leaves ? outlineLeaf(override, p.mat) : override
     return p.leaves ? tintedLeaf(p.mat, tint, pine) : p.mat
   }), [model, override, tint, pine])
   return (

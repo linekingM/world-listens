@@ -447,8 +447,13 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
       extra.push(solidColor(tip, leafB))
     }
   }
-  const merged = mergeGeometries([normalizeAttrs(gs), ...extra.map((e) => normalizeAttrs(e))])!
-  return lowPoly ? facet(merged) : merged
+  const shell = normalizeAttrs(gs)
+  const shellCount = shell.index ? shell.index.count : shell.getAttribute('position').count
+  const merged = mergeGeometries([shell, ...extra.map((e) => normalizeAttrs(e))])!
+  const out = lowPoly ? facet(merged) : merged
+  // the rock shell comes first: selection outlines draw only this range (no fat halos on thin vines/roots)
+  out.userData.shellCount = shellCount
+  return out
 }
 
 // ───────────────────────────── houses ─────────────────────────────
