@@ -16,11 +16,14 @@ import { GravityFX } from './common/GravityFX'
 import { CityHaze } from './common/CityHaze'
 import { NightMagic } from './common/NightMagic'
 import { WindGust } from './common/WindGust'
+import { QualityProbe } from './common/QualityProbe'
+import { QSPEC } from '../state/quality'
 
 const NO_CLOUDS = new URLSearchParams(window.location.search).has('noclouds')
 
 export function WorldCanvas() {
   const styleId = useWorld((s) => s.style)
+  const quality = useWorld((s) => s.quality)
   const style = STYLES[styleId]
   const env = sharedEnv
   const { Sky, Clouds, Effects, Extras } = style
@@ -28,7 +31,7 @@ export function WorldCanvas() {
     <Canvas
       key={styleId}
       shadows={{ type: THREE.PCFShadowMap }}
-      dpr={[1, 2]}
+      dpr={QSPEC[quality].dpr}
       camera={{ position: style.camera.position, fov: style.camera.fov, near: 0.5, far: 6000 }}
       gl={{ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false }}
     >
@@ -49,6 +52,7 @@ export function WorldCanvas() {
           {Extras && <Extras />}
           <CameraRig />
           <Effects />
+          <QualityProbe />
         </StyleContext.Provider>
       </EnvContext.Provider>
     </Canvas>

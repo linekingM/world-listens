@@ -7,6 +7,7 @@ import { sampleLighting } from '../../world/palette'
 import { useEnv, useStyleDef } from './EnvContext'
 import { WEATHER_TARGETS, fxUniforms } from './env'
 import { smoothstep } from '../../lib/random'
+import { QSPEC } from '../../state/quality'
 
 const FOCUS = new THREE.Vector3(-4, 0, -55)
 const moonDir = new THREE.Vector3()
@@ -88,7 +89,13 @@ export function SunRig() {
     ;(window as unknown as { __env: unknown }).__env = env
   })
 
-  const s = style.shadowMapSize
+  const quality = useWorld((st) => st.quality)
+  const s = Math.min(4096, Math.max(1024, style.shadowMapSize * QSPEC[quality].shadowScale))
+  // a new size needs a new shadow render target
+  useEffect(() => {
+    const l = light.current
+    if (l?.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null }
+  }, [s])
   return (
     <>
       <directionalLight

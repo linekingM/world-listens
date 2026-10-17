@@ -527,7 +527,8 @@ export function buildCity(list: Building[], { lowPoly }: BuildOpts) {
     for (let i = 0; i < uv.count; i++) {
       const sideX = Math.abs(nor.getX(i)) > 0.5, sideY = Math.abs(nor.getY(i)) > 0.5
       const w = sideX ? bd.d : bd.w
-      uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + bd.tone * 13.7) / 4, sideY ? 0 : (uv.getY(i) * h / 3.4 + Math.floor(bd.tone * 97)) / 4)
+      // one window bay per 3.2 m and one storey per 3.4 m (the textures hold FACADE_CELLS x FACADE_CELLS bays)
+      uv.setXY(i, sideY ? 0 : (uv.getX(i) * w / 3.2 + Math.floor(bd.tone * 13.7)) / FACADE_CELLS, sideY ? 0 : (uv.getY(i) * h / 3.4 + Math.floor(bd.tone * 97)) / FACADE_CELLS)
     }
     setColors(g, (p, n, o) => { o.copy(base).multiplyScalar(0.74 + clamp((p.y - y0) / 40) * 0.26); if (n.y > 0.5) o.multiplyScalar(0.92) })
     parts.push(normalizeAttrs(g, true))
@@ -698,50 +699,80 @@ function zeroUv(g: THREE.BufferGeometry) {
 }
 
 /** Canvas window texture: lit windows in the (unused) map alpha, used as emissive mask. */
+const FACADE_CELLS = 16
+const FS = 1024, FC = FS / FACADE_CELLS
+// window opening inside a 64 px bay (3.2 m x 3.4 m): ~1.3 m wide, ~2 m tall
+const WX0 = 19, WX1 = 45, WY0 = 12, WY1 = 51
+const bayHash = (x: number, y: number) => ((Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1 + 1) % 1
+
+/** Night window lights, bay-for-bay with the facade texture: lights cluster in a few lived-in homes (3x2 bays). */
 export function windowTexture() {
-  const s = 512, n = 32, c = s / n
   const cv = document.createElement('canvas')
-  cv.width = cv.height = s
+  cv.width = cv.height = FS
   const ctx = cv.getContext('2d')!
   ctx.fillStyle = '#000'
-  ctx.fillRect(0, 0, s, s)
+  ctx.fillRect(0, 0, FS, FS)
   const r = rng(5)
-  for (let y = 0; y < n; y++) {
-    // lights cluster in a few lived-in homes (blocks of 3x2 windows), the rest of the facade stays dark
-    for (let x = 0; x < n; x++) {
-      const bx = Math.floor(x / 3), by = Math.floor(y / 2)
-      const home = ((Math.sin(bx * 12.9898 + by * 78.233) * 43758.5453) % 1 + 1) % 1
-      const on = home > 0.76 ? r() < 0.85 : r() < 0.02
+  for (let y = 0; y < FACADE_CELLS; y++) {
+    for (let x = 0; x < FACADE_CELLS; x++) {
+      const home = bayHash(Math.floor(x / 3), Math.floor(y / 2))
+      const on = home > 0.7 ? r() < 0.85 : r() < 0.04
       const warm = r()
-      ctx.fillStyle = on ? (warm > 0.95 ? `rgb(${190 + warm * 30},${215},${235})` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`) : '#0b0d12'
-      ctx.fillRect(x * c + 5, y * c + 3, c - 10, c - 8)
+      if (!on) continue
+      ctx.fillStyle = warm > 0.95 ? `rgb(${190 + warm * 30},215,235)` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`
+      ctx.fillRect(x * FC + WX0 + 2, y * FC + WY0 + 2, WX1 - WX0 - 4, WY1 - WY0 - 4)
+      // mullion + transom stay dark
+      ctx.fillStyle = '#000'
+      ctx.fillRect(x * FC + (WX0 + WX1) / 2 - 1, y * FC + WY0, 2, WY1 - WY0)
+      ctx.fillRect(x * FC + WX0, y * FC + WY0 + 12, WX1 - WX0, 2)
     }
   }
   const tex = new THREE.CanvasTexture(cv)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 4
+  tex.anisotropy = 8
   return tex
 }
 
-/** Daytime facade: pale wall with a grid of slightly bluer, darker windows (multiplied over vertex colours). */
+/** Daytime facade (multiplied over vertex colours): stucco with storey bands, framed windows, sills, pale shutters. */
 export function facadeTexture() {
-  const s = 512, n = 32, c = s / n
   const cv = document.createElement('canvas')
-  cv.width = cv.height = s
+  cv.width = cv.height = FS
   const ctx = cv.getContext('2d')!
   ctx.fillStyle = '#f6f1e8'
-  ctx.fillRect(0, 0, s, s)
+  ctx.fillRect(0, 0, FS, FS)
   const r = rng(11)
-  for (let y = 0; y < n; y++) {
-    // faint storey band
-    ctx.fillStyle = 'rgba(120,96,70,0.10)'; ctx.fillRect(0, y * c + c - 2, s, 2)
-    for (let x = 0; x < n; x++) {
-      const v = 70 + r() * 30
-      ctx.fillStyle = `rgb(${v + 20},${v + 8},${v})`
-      ctx.fillRect(x * c + 5, y * c + 3, c - 10, c - 8)
-      // shutters / sill
-      ctx.fillStyle = 'rgba(255,250,240,0.55)'; ctx.fillRect(x * c + 4, y * c + c - 5, c - 8, 1.5)
+  // soft stucco mottling
+  for (let i = 0; i < 2600; i++) { ctx.fillStyle = `rgba(${r() < 0.5 ? '120,96,70' : '255,252,245'},${0.03 + r() * 0.04})`; const s = 6 + r() * 26; ctx.fillRect(r() * FS, r() * FS, s, s * 0.6) }
+  // pale painted shutters only (their red channel stays above the glint mask threshold, so only glass glints)
+  const SHUT = ['#cfdac6', '#cbdde0', '#d9c9b4', '#d6cfc0']
+  for (let y = 0; y < FACADE_CELLS; y++) {
+    const y0 = y * FC
+    // storey band / string course
+    ctx.fillStyle = 'rgba(120,96,70,0.16)'; ctx.fillRect(0, y0 + FC - 4, FS, 3)
+    ctx.fillStyle = 'rgba(255,252,245,0.5)'; ctx.fillRect(0, y0 + FC - 6, FS, 2)
+    for (let x = 0; x < FACADE_CELLS; x++) {
+      const x0 = x * FC, h = bayHash(x * 3 + 1, y * 7 + 2)
+      // lintel + sill
+      ctx.fillStyle = 'rgba(255,250,240,0.7)'; ctx.fillRect(x0 + WX0 - 3, y0 + WY0 - 4, WX1 - WX0 + 6, 3)
+      ctx.fillRect(x0 + WX0 - 3, y0 + WY1 + 1, WX1 - WX0 + 6, 3)
+      ctx.fillStyle = 'rgba(90,70,50,0.25)'; ctx.fillRect(x0 + WX0 - 3, y0 + WY1 + 4, WX1 - WX0 + 6, 1)
+      // shutters on about half of the bays (open, flanking the window)
+      if (h < 0.5) {
+        ctx.fillStyle = SHUT[Math.floor(h * 8) % SHUT.length]
+        ctx.fillRect(x0 + WX0 - 10, y0 + WY0, 8, WY1 - WY0); ctx.fillRect(x0 + WX1 + 2, y0 + WY0, 8, WY1 - WY0)
+        ctx.fillStyle = 'rgba(60,50,40,0.18)'
+        for (let k = 0; k < 6; k++) { ctx.fillRect(x0 + WX0 - 10, y0 + WY0 + 3 + k * 6, 8, 1); ctx.fillRect(x0 + WX1 + 2, y0 + WY0 + 3 + k * 6, 8, 1) }
+      }
+      // glass: dark, slightly blue, with a frame, mullion and transom
+      const v = 62 + r() * 26
+      ctx.fillStyle = `rgb(${v + 14},${v + 10},${v + 4})`; ctx.fillRect(x0 + WX0, y0 + WY0, WX1 - WX0, WY1 - WY0)
+      ctx.fillStyle = `rgb(${v - 8},${v + 2},${v + 18})`; ctx.fillRect(x0 + WX0 + 2, y0 + WY0 + 2, WX1 - WX0 - 4, WY1 - WY0 - 4)
+      ctx.fillStyle = 'rgba(245,240,230,0.85)'
+      ctx.fillRect(x0 + (WX0 + WX1) / 2 - 1, y0 + WY0, 2, WY1 - WY0)
+      ctx.fillRect(x0 + WX0, y0 + WY0 + 12, WX1 - WX0, 2)
+      // a few flower boxes
+      if (h > 0.86) { ctx.fillStyle = '#7a9a4a'; ctx.fillRect(x0 + WX0, y0 + WY1 - 3, WX1 - WX0, 4); ctx.fillStyle = '#d0605a'; for (let k = 0; k < 5; k++) ctx.fillRect(x0 + WX0 + 2 + k * 5, y0 + WY1 - 5, 3, 3) }
     }
   }
   const tex = new THREE.CanvasTexture(cv)

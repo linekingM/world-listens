@@ -2,7 +2,7 @@
   {
     "name": "loads without errors, no style switcher, HUD present",
     "ok": true,
-    "s": 0.068
+    "s": 0.072
   },
   {
     "name": "HUD covers < 12% of the screen (desktop)",
@@ -12,102 +12,107 @@
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 43.91
+    "s": 70.405
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 54.721
+    "s": 124.517
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 29.386
+    "s": 63.853
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 5.891
+    "s": 12.656
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 26.412
+    "s": 40.436
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 3.086
+    "s": 4.191
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 6.553
+    "s": 9.348
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 18.291
+    "s": 23.948
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 27.001
+    "s": 35.605
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
     "ok": true,
-    "s": 35.121
+    "s": 46.766
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 59.123
+    "s": 66.246
   },
   {
     "name": "looser orbit: zoom in closer than before, camera never inside an island",
     "ok": true,
-    "s": 29.255
+    "s": 37.026
   },
   {
     "name": "free-roam: toggle, WASD walk, drag to look, typing does not move, ground collision, Esc glides home",
     "ok": true,
-    "s": 70.914
+    "s": 81.797
+  },
+  {
+    "name": "quality 高/中/低: trees follow the tier, choice persists, 自动 clears it",
+    "ok": true,
+    "s": 18.632
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 15.15
+    "s": 17.805
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 6.307
+    "s": 8.064
   },
   {
     "name": "share link round-trips the whole world",
-    "ok": true,
-    "s": 201.299
+    "ok": false,
+    "err": "page.waitForFunction: Timeout 240000ms exceeded."
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
-    "ok": true,
-    "s": 21.577
+    "ok": false,
+    "err": "page.waitForFunction: Timeout 30000ms exceeded."
   },
   {
     "name": "autosave: reload restores the edited world",
     "ok": true,
-    "s": 10.401
+    "s": 152.359
   },
   {
     "name": "reset world (two-step confirm)",
     "ok": true,
-    "s": 6.831
+    "s": 11.848
   },
   {
     "name": "sun-drag wow: fast time change raises a wind gust with petals",
     "ok": true,
-    "s": 14.004
+    "s": 24.709
   },
   {
     "name": "no runtime errors during the whole desktop session",
@@ -117,16 +122,16 @@
   {
     "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
     "ok": true,
-    "s": 57.068
+    "s": 234.474
   },
   {
     "name": "mobile free-roam: joystick walks, drag looks, rail hidden, 返回 exits",
     "ok": true,
-    "s": 29.442
+    "s": 220.962
   },
   {
     "name": "first-visit onboarding hint shows once and dismisses",
-    "ok": true,
-    "s": 21.314
+    "ok": false,
+    "err": "page.waitForFunction: Target page, context or browser has been closed"
   }
 ]

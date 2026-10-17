@@ -116,6 +116,10 @@ button { font: inherit; color: inherit; }
 .chip:focus-visible { outline: 2px solid var(--accent); }
 .chip-row { display: flex; gap: 6px; margin-top: 12px; }
 .chip-row .pill { flex: 1; padding: 7px 0; }
+.quality-row { display: flex; align-items: center; gap: 5px; margin-top: 10px; }
+.quality-label { font-size: 12px; opacity: 0.75; margin-right: 4px; }
+.pill.sm { padding: 6px 10px; font-size: 12px; }
+.quality-row .pill.sm[data-testid=q-auto] { min-width: 52px; }
 .slider { width: 100%; appearance: none; -webkit-appearance: none; height: 4px; border-radius: 4px; background: linear-gradient(90deg, #a9b8ff, rgba(255,255,255,0.5) 50%, #ffd99a); outline: none; margin: 6px 0 4px; }
 .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fffaf0; box-shadow: 0 0 0 3px rgba(255, 217, 154, 0.35), 0 2px 8px rgba(0,0,0,0.25); cursor: grab; }
 .slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fffaf0; border: none; box-shadow: 0 0 0 3px rgba(255, 217, 154, 0.35); }

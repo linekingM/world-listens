@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { CloudObject, ObjType, Panel, Vec3, WeatherId, WorldDoc, WorldObject } from './types'
 import { defaultWorld } from './defaultWorld'
 import { sims } from '../scene/systems/simulation'
+import { detectQuality, initialQuality, storeAutoQuality, storeUserQuality, type Quality } from './quality'
 
 export type StyleId = 'a' | 'b' | 'c'
 export type { ObjType, WeatherId, WorldDoc, WorldObject, CloudObject, Panel, Vec3 }
@@ -59,6 +60,13 @@ interface Actions {
   deleteWithUndo: (id: string) => void
   dismissToast: (id: number) => void
   setHintSeen: () => void
+  /** rendering quality tier; `qualityAuto` = picked by the device/fps probe rather than the user */
+  quality: Quality
+  qualityAuto: boolean
+  /** user choice (persisted); null = back to automatic */
+  setQuality: (q: Quality | null) => void
+  /** automatic step from the fps probe (only while qualityAuto) */
+  autoQuality: (q: Quality) => void
 }
 
 export type WorldState = WorldDoc & UIState & Actions
@@ -86,6 +94,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   cameraResetTick: 0,
   camMode: 'orbit',
   toasts: [],
+  ...(() => { const q = initialQuality(); return { quality: q.quality, qualityAuto: q.auto } })(),
   hintSeen: (() => { try { return localStorage.getItem('world-listens.hint') === '1' } catch { return false } })(),
 
   setStyle: (style) => set({ style }),
@@ -162,6 +171,12 @@ export const useWorld = create<WorldState>((set, get) => ({
     } })
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  setQuality: (q) => {
+    storeUserQuality(q)
+    if (q) set({ quality: q, qualityAuto: false })
+    else { storeAutoQuality(null); set({ quality: detectQuality(), qualityAuto: true }) }
+  },
+  autoQuality: (q) => { if (get().qualityAuto) { storeAutoQuality(q); set({ quality: q }) } },
   setHintSeen: () => { try { localStorage.setItem('world-listens.hint', '1') } catch { /* private mode / quota */ } set({ hintSeen: true }) },
 }))
 

@@ -27,3 +27,4 @@ dist-ssr
 shots/*
 !shots/best/
 !shots/roam/
+dist-suite

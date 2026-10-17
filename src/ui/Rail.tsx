@@ -1,3 +1,4 @@
+import { QUALITIES, QUALITY_LABEL } from '../state/quality'
 import { useIsCompact } from './SelectionActions'
 import { useWorld } from '../state/worldStore'
 import type { ObjType, WeatherId } from '../state/types'
@@ -102,6 +103,21 @@ function GravityPanel() {
   )
 }
 
+function QualityRow() {
+  const quality = useWorld((s) => s.quality)
+  const auto = useWorld((s) => s.qualityAuto)
+  const setQuality = useWorld((s) => s.setQuality)
+  return (
+    <div className="quality-row" role="radiogroup" aria-label="画质">
+      <span className="quality-label">画质</span>
+      <button className={`pill sm${auto ? ' on' : ''}`} role="radio" aria-checked={auto} onClick={() => setQuality(null)} data-testid="q-auto">自动{auto ? `·${QUALITY_LABEL[quality]}` : ''}</button>
+      {QUALITIES.map((q) => (
+        <button key={q} className={`pill sm${!auto && quality === q ? ' on' : ''}`} role="radio" aria-checked={!auto && quality === q} onClick={() => setQuality(q)} data-testid={`q-${q}`}>{QUALITY_LABEL[q]}</button>
+      ))}
+    </div>
+  )
+}
+
 function CameraPanel() {
   const camMode = useWorld((s) => s.camMode)
   const setCamMode = useWorld((s) => s.setCamMode)
@@ -117,6 +133,7 @@ function CameraPanel() {
           <Icon name="camera" size={16} /> 自由漫游
         </button>
       </div>
+      <QualityRow />
       <div className="panel-note">
         {compact
           ? '漫游：左下摇杆行走，拖动屏幕环顾，右下按钮升降，飞上浮岛或走向城门。'

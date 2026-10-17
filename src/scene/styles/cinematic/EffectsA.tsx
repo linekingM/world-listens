@@ -5,6 +5,8 @@ import { Bloom, EffectComposer, GodRays, Noise, SMAA, ToneMapping, Vignette } fr
 import { BlendFunction, ToneMappingMode } from 'postprocessing'
 import { sharedEnv as env } from '../../common/sharedEnv'
 import { smoothstep } from '../../../lib/random'
+import { useWorld } from '../../../state/worldStore'
+import { QSPEC } from '../../../state/quality'
 
 const sunMat = new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false, fog: false })
 
@@ -22,6 +24,17 @@ function SunProxy({ onMesh }: { onMesh: (m: THREE.Mesh | null) => void }) {
 
 export function EffectsA() {
   const [sun, setSun] = useState<THREE.Mesh | null>(null)
+  const full = useWorld((s) => QSPEC[s.quality].post === 'full')
+  if (!full) {
+    // 低: no god rays / bloom / grain, keep the grade and edge smoothing
+    return (
+      <EffectComposer multisampling={0} enableNormalPass={false}>
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        <Vignette offset={0.32} darkness={0.34} />
+        <SMAA />
+      </EffectComposer>
+    )
+  }
   return (
     <>
       <SunProxy onMesh={(m) => { if (m && m !== sun) setSun(m) }} />

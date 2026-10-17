@@ -178,19 +178,24 @@ function ModelInstances({ name, spots, targetH, pine, shadows = true, uvShift, s
 }
 
 /** Distribute spots over the models (species by kind, model by tint) and render them instanced. */
-export function AssetTrees({ spots }: { spots: TreeSpot[] }) {
-  ;(window as unknown as { __assetTrees: number }).__assetTrees = spots.length
+export function AssetTrees({ spots, farSpots = [] }: { spots: TreeSpot[]; farSpots?: TreeSpot[] }) {
+  ;(window as unknown as { __assetTrees: number }).__assetTrees = spots.length + farSpots.length
   const groups = useMemo(() => {
-    const out: { name: string; spots: TreeSpot[]; h: number; pine?: boolean }[] = []
-    const add = (names: string[], list: TreeSpot[], h: number, pine?: boolean) => names.forEach((n, i) => out.push({ name: n, spots: list.filter((s) => Math.floor(((s.tint * 13.7) % 1) * names.length) === i), h, pine }))
+    const out: { name: string; spots: TreeSpot[]; h: number; pine?: boolean; far?: boolean }[] = []
+    const add = (names: string[], list: TreeSpot[], h: number, pine?: boolean, far?: boolean) => names.forEach((n, i) => out.push({ name: n, spots: list.filter((s) => Math.floor(((s.tint * 13.7) % 1) * names.length) === i), h, pine, far }))
     // ~1 pine per 4 broadleaf near the path: the rest of the pine spots become broadleaf crowns
     // pines only in the mid-ground (no dark cropped firs in the corners)
     const isPine = (s: TreeSpot) => s.kind === 1 && ((s.tint * 29.1) % 1) < 0.4 && Math.hypot(s.x - 8, s.z - 38) > 45
     add(BROADLEAF, spots.filter((s) => !isPine(s)), 7.6)
     add(PINES, spots.filter(isPine), 8, true)
-    return out
-  }, [spots])
-  return <>{groups.map((g) => <ModelInstances key={g.name} name={g.name} spots={g.spots} targetH={g.h} pine={g.pine} />)}</>
+    // 高: distant groves are asset trees too, without shadows (outside the shadow frustum anyway) and no near-camera shrink
+    if (farSpots.length) {
+      add(BROADLEAF, farSpots.filter((s) => !isPine(s)), 7.6, false, true)
+      add(PINES, farSpots.filter(isPine), 8, true, true)
+    }
+    return out.filter((g) => g.spots.length)
+  }, [spots, farSpots])
+  return <>{groups.map((g) => <ModelInstances key={g.name + (g.far ? '-far' : '')} name={g.name} spots={g.spots} targetH={g.h} pine={g.pine} shadows={!g.far} shrink={!g.far} />)}</>
 }
 
 // tinted leaf materials for single trees, shared per (material, pine, tint): bounded set, never freed or leaked

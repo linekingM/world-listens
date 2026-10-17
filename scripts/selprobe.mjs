@@ -1,0 +1,11 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+const p = await (await b.newContext({ viewport: { width: 1280, height: 800 } })).newPage()
+await p.addInitScript(() => localStorage.setItem('world-listens.hint', '1'))
+await p.goto('http://127.0.0.1:4173/?t=10')
+await p.waitForFunction(() => (window.__frames ?? 0) > 20, null, { timeout: 240000 })
+console.log(await p.evaluate(() => { const s = window.__world.getState(); const id = s.addObject('tree', [6, 0, 20]); s.select(id); const t = window.__world.getState(); return { id, sel: t.selectedId, n: t.objects.length, pos: t.objects.find((o) => o.id === id)?.pos } }))
+await p.evaluate(() => window.__world.getState().setCamMode('roam'))
+await p.waitForTimeout(3000)
+console.log(await p.evaluate(() => ({ sel: window.__world.getState().selectedId, mode: window.__world.getState().camMode })))
+await b.close()

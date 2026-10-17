@@ -9,7 +9,9 @@ const results = []
 const t0all = Date.now()
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
 
+const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null
 async function test(name, fn) {
+  if (ONLY && !ONLY.test(name)) return
   const t0 = Date.now()
   try { await fn(); results.push({ name, ok: true, s: (Date.now() - t0) / 1000 }); console.log('✔', name, `${((Date.now() - t0) / 1000).toFixed(1)}s`) }
   catch (e) { results.push({ name, ok: false, err: String(e.message || e).slice(0, 300) }); console.log('✘', name, e.message) }
@@ -19,6 +21,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
 async function open(viewport, opts = {}) {
   const ctx = await b.newContext({ viewport, deviceScaleFactor: opts.dpr ?? 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile, acceptDownloads: true })
   if (!opts.showHint) await ctx.addInitScript(() => localStorage.setItem('world-listens.hint', '1'))
+  // fixed quality tier (中) for speed and stable timings: no auto-detection / fps probe in tests
+  await ctx.addInitScript(() => { if (!localStorage.getItem('world-listens.quality')) localStorage.setItem('world-listens.quality', 'medium') })
   const page = await ctx.newPage()
   page.errors = []
   page.on('pageerror', (e) => page.errors.push('PAGEERROR ' + e.message))
@@ -355,6 +359,23 @@ await test('free-roam: toggle, WASD walk, drag to look, typing does not move, gr
 })
 
 let savedDoc = null
+await test('quality 高/中/低: trees follow the tier, choice persists, 自动 clears it', async () => {
+  await page.click('[data-testid=rail-view]')
+  const q = () => page.evaluate(() => ({ q: window.__world.getState().quality, auto: window.__world.getState().qualityAuto, split: window.__treeSplit.join(','), ls: localStorage.getItem('world-listens.quality') }))
+  assert((await q()).q === 'medium', 'tests run at 中')
+  await page.click('[data-testid=q-high]')
+  await page.waitForFunction(() => window.__world.getState().quality === 'high' && window.__treeSplit[1] === 0, null, { timeout: 60000 })
+  assert((await q()).ls === 'high', 'persisted ' + JSON.stringify(await q()))
+  await page.click('[data-testid=q-low]')
+  await page.waitForFunction(() => window.__world.getState().quality === 'low' && window.__treeSplit[0] === 0, null, { timeout: 60000 })
+  await page.click('[data-testid=q-auto]')
+  const a = await q()
+  assert(a.auto && a.ls === null, 'auto clears the override ' + JSON.stringify(a))
+  await page.click('[data-testid=q-medium]')
+  await page.waitForFunction(() => window.__world.getState().quality === 'medium' && window.__treeSplit[0] > 0 && window.__treeSplit[1] > 0, null, { timeout: 60000 })
+  await page.click('[data-testid=rail-view]')
+})
+
 await test('save locally, change world, load save back', async () => {
   await page.click('[data-testid=open-save]')
   await page.fill('[data-testid=world-name]', '黄昏之城')
@@ -392,13 +413,14 @@ await test('share link round-trips the whole world', async () => {
   assert(link.length < 8000, 'link too long ' + link.length)
   const doc = await st(page, (s) => s.getDoc())
   const p2 = await open({ width: 900, height: 600 }, { query: link.slice(link.indexOf('#')) })
-  await p2.page.waitForFunction(() => window.__world.getState().name === '黄昏之城', null, { timeout: 60000 })
-  const d2 = await st(p2.page, (s) => s.getDoc())
-  assert(d2.objects.length === doc.objects.length, 'object count')
-  assert(Math.abs(d2.gravity - 0.45) < 0.01 && Math.abs(d2.time - 18.4) < 0.01, 'rules/time')
-  for (let i = 0; i < doc.objects.length; i++) assert(Math.abs(d2.objects[i].pos[0] - doc.objects[i].pos[0]) < 0.02, 'pos ' + i)
-  assert(p2.page.errors.length === 0, 'errors in shared page ' + p2.page.errors.join('|'))
-  await p2.ctx.close()
+  try {
+    await p2.page.waitForFunction(() => window.__world.getState().name === '黄昏之城', null, { timeout: 60000 })
+    const d2 = await st(p2.page, (s) => s.getDoc())
+    assert(d2.objects.length === doc.objects.length, 'object count')
+    assert(Math.abs(d2.gravity - 0.45) < 0.01 && Math.abs(d2.time - 18.4) < 0.01, 'rules/time')
+    for (let i = 0; i < doc.objects.length; i++) assert(Math.abs(d2.objects[i].pos[0] - doc.objects[i].pos[0]) < 0.02, 'pos ' + i)
+    assert(p2.page.errors.length === 0, 'errors in shared page ' + p2.page.errors.join('|'))
+  } finally { await p2.ctx.close() }
   await page.click('[data-testid=open-share]')
 })
 
