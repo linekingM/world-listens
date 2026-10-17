@@ -3,6 +3,26 @@ import { useWorld } from '../state/worldStore'
 import { sunAt, phaseName, timeLabel } from '../world/sun'
 import { sharedEnv } from '../scene/common/sharedEnv'
 import { Icon } from './icons'
+import { PLAY_RATES } from '../state/serialize'
+
+const rateLabel = (m: number) => (m >= 60 ? `${m / 60}小时/秒` : `${m}分/秒`)
+
+/** Play / pause the day, plus a compact rate pill that cycles the presets. */
+function PlayControls() {
+  const playing = useWorld((s) => s.playing)
+  const rate = useWorld((s) => s.playRate)
+  const setPlaying = useWorld((s) => s.setPlaying)
+  const setRate = useWorld((s) => s.setPlayRate)
+  const next = () => setRate(PLAY_RATES[(PLAY_RATES.indexOf(rate) + 1) % PLAY_RATES.length])
+  return (
+    <div className="dial-play">
+      <button className={`play-btn${playing ? ' on' : ''}`} onClick={() => setPlaying(!playing)} aria-label={playing ? '暂停时间' : '播放时间'} aria-pressed={playing} data-testid="time-play">
+        <Icon name={playing ? 'pause' : 'play'} size={16} />
+      </button>
+      <button className="rate-pill" onClick={next} aria-label={`播放速度 ${rateLabel(rate)}，点按切换`} data-testid="time-rate">{rateLabel(rate)}</button>
+    </div>
+  )
+}
 
 const W = 400, H = 64, BASE = 46, AMP = 34
 const MAX_E = 64
@@ -26,6 +46,7 @@ const dayCurve = (() => {
 export function SunDial() {
   const time = useWorld((s) => s.time)
   const setTime = useWorld((s) => s.setTime)
+  const setHeld = useWorld((s) => s.setTimeHeld)
   const svg = useRef<SVGSVGElement>(null)
   const drag = useRef(false)
   const [shown, setShown] = useState(time)
@@ -48,6 +69,7 @@ export function SunDial() {
   const label = phaseName(shown)
   return (
     <div className="sun-dial glass" data-testid="sun-dial">
+      <PlayControls />
       <div className="dial-readout">
         <span className="dial-time" data-testid="dial-time">{timeLabel(time)}</span>
         <span className="dial-phase">{label}</span>
@@ -63,11 +85,11 @@ export function SunDial() {
         aria-valuenow={Math.round(time * 100) / 100}
         aria-valuetext={timeLabel(time)}
         tabIndex={0}
-        onPointerDown={(e) => { drag.current = true; svg.current?.setPointerCapture(e.pointerId); fromEvent(e) }}
+        onPointerDown={(e) => { drag.current = true; setHeld(true); svg.current?.setPointerCapture(e.pointerId); fromEvent(e) }}
         onPointerMove={(e) => drag.current && fromEvent(e)}
-        onPointerUp={() => { drag.current = false }}
-        onPointerCancel={() => { drag.current = false }}
-        onLostPointerCapture={() => { drag.current = false }}
+        onPointerUp={() => { drag.current = false; setHeld(false) }}
+        onPointerCancel={() => { drag.current = false; setHeld(false) }}
+        onLostPointerCapture={() => { drag.current = false; setHeld(false) }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setTime(time - 0.25, 'drag'); e.preventDefault() }
           if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setTime(time + 0.25, 'drag'); e.preventDefault() }

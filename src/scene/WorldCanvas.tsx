@@ -17,6 +17,7 @@ import { CityHaze } from './common/CityHaze'
 import { NightMagic } from './common/NightMagic'
 import { WindGust } from './common/WindGust'
 import { QualityProbe } from './common/QualityProbe'
+import { TimePlayer } from './common/TimePlayer'
 import { QSPEC } from '../state/quality'
 
 const NO_CLOUDS = new URLSearchParams(window.location.search).has('noclouds')
@@ -53,6 +54,7 @@ export function WorldCanvas() {
           <CameraRig />
           <Effects />
           <QualityProbe />
+          <TimePlayer />
         </StyleContext.Provider>
       </EnvContext.Provider>
     </Canvas>

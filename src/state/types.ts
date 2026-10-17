@@ -34,6 +34,8 @@ export interface WorldDoc {
   orbit: boolean
   objects: WorldObject[]
   clouds: CloudObject[]
+  /** auto time-of-day playback: on/off and game minutes per real second */
+  play?: { on: boolean; rate: number }
 }
 
 export type Panel = 'weather' | 'add' | 'gravity' | 'camera' | 'save' | 'share' | null

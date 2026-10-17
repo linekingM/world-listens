@@ -1,12 +1,7 @@
 [
   {
-    "name": "mobile free-roam: joystick walks, drag looks, rail hidden, 返回 exits",
-    "ok": true,
-    "s": 82.559
-  },
-  {
     "name": "mobile roam touch gestures: drag looks, pinch moves, two-finger drag rises, double-tap glides, no selection",
-    "ok": false,
-    "err": "page.waitForFunction: Timeout 30000ms exceeded."
+    "ok": true,
+    "s": 185.195
   }
 ]

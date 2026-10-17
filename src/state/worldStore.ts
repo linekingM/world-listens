@@ -22,7 +22,16 @@ interface UIState {
   /** true while the user drags an object / cloud / the sun → camera controls pause */
   dragging: boolean
   /** how fast the visible time chases the target: 'drag' = snappy, 'slow' = cinematic transition */
-  timeEase: 'drag' | 'slow'
+  timeEase: 'drag' | 'slow' | 'play'
+  /** auto time-of-day playback */
+  playing: boolean
+  /** game minutes per real second */
+  playRate: number
+  /** the dial / sun is being dragged: playback waits */
+  timeHeld: boolean
+  setPlaying: (on: boolean) => void
+  setPlayRate: (r: number) => void
+  setTimeHeld: (h: boolean) => void
   cameraResetTick: number
   /** 'orbit' = framed orbit around the scene, 'roam' = game-style free explore (WASD / joystick) */
   camMode: 'orbit' | 'roam'
@@ -33,7 +42,7 @@ interface UIState {
 interface Actions {
   setCamMode: (m: 'orbit' | 'roam') => void
   setStyle: (s: StyleId) => void
-  setTime: (t: number, ease?: 'drag' | 'slow') => void
+  setTime: (t: number, ease?: 'drag' | 'slow' | 'play') => void
   setWeather: (w: WeatherId) => void
   setName: (n: string) => void
   addObject: (type: ObjType, pos: Vec3, extra?: Partial<WorldObject>) => string
@@ -91,6 +100,12 @@ export const useWorld = create<WorldState>((set, get) => ({
   railOpen: true,
   dragging: false,
   timeEase: 'drag',
+  playing: false,
+  playRate: 30,
+  timeHeld: false,
+  setPlaying: (playing) => set({ playing }),
+  setPlayRate: (playRate) => set({ playRate }),
+  setTimeHeld: (timeHeld) => set({ timeHeld }),
   cameraResetTick: 0,
   camMode: 'orbit',
   toasts: [],
@@ -142,11 +157,11 @@ export const useWorld = create<WorldState>((set, get) => ({
   setCamMode: (camMode) => set({ camMode, panel: null, placing: null }),
 
   // a new world: drop per-object sim offsets (ids like bench-0 are reused) and stale 撤销 toasts
-  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
-  resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, playing: doc.play?.on ?? false, playRate: doc.play?.rate ?? 30, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), playing: false, playRate: 30, selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
   getDoc: () => {
     const s = get()
-    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds }
+    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds, play: { on: s.playing, rate: s.playRate } }
   },
   toast: (text, kind = 'info', action) => {
     const id = ++toastId

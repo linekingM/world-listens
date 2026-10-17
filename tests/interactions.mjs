@@ -121,6 +121,31 @@ await test('drag the sun in the sky changes time', async () => {
   await frames(page, 30)
 })
 
+await test('time playback: plays, rate cycles, holds while the dial is dragged, resumes, pauses, saved in the doc', async () => {
+  const t = () => st(page, (s) => s.time)
+  const moved = (a, c) => { const d = ((c - a) % 24 + 24) % 24; return d > 0.04 && d < 12 }
+  await page.click('[data-testid=time-play]')
+  let a = await t(); await frames(page, 10)
+  assert(moved(a, await t()), 'time advances while playing')
+  await page.click('[data-testid=time-rate]')
+  assert((await st(page, (s) => s.playRate)) === 60, 'rate cycles 30 -> 60')
+  // hold the dial: time stays where the finger is
+  const box = await (await page.$('.dial-svg')).boundingBox()
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2); await page.mouse.down()
+  await frames(page, 2)
+  a = await t(); await frames(page, 8)
+  assert(Math.abs((await t()) - a) < 0.01 && (await st(page, (s) => s.timeHeld)), 'holds while dragging the dial')
+  await page.mouse.up()
+  a = await t(); await frames(page, 8)
+  assert(moved(a, await t()), 'resumes on release')
+  await page.click('[data-testid=time-play]')
+  a = await t(); await frames(page, 8)
+  assert(Math.abs((await t()) - a) < 0.01, 'paused')
+  const play = await st(page, (s) => s.getDoc().play)
+  assert(play.on === false && play.rate === 60, 'doc carries play state ' + JSON.stringify(play))
+  await page.evaluate(() => { const s = window.__world.getState(); s.setPlayRate(30); s.setTime(17.6, 'drag') })
+})
+
 await test('weather transitions gradually (clear → cloudy → mist → clear)', async () => {
   await page.click('[data-testid=rail-weather]')
   await page.click('[data-weather=cloudy]')

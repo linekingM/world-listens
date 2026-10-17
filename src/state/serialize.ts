@@ -58,7 +58,16 @@ export function parseWorld(raw: unknown): WorldDoc {
     orbit: r.orbit === true,
     objects,
     clouds,
+    play: parsePlay(r.play),
   }
+}
+
+export const PLAY_RATES = [5, 15, 30, 60, 120]
+function parsePlay(p: unknown): WorldDoc['play'] {
+  if (!p || typeof p !== 'object') return undefined
+  const x = p as Record<string, unknown>
+  const rate = PLAY_RATES.includes(Number(x.rate)) ? Number(x.rate) : 30
+  return { on: x.on === true, rate }
 }
 
 /** Compact JSON: round numbers so share links stay short. */
