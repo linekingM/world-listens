@@ -336,6 +336,10 @@ await test('free-roam: toggle, WASD walk, drag to look, typing does not move, gr
   await page.evaluate(() => { window.__cam.position.y = -30 })
   await frames(page, 3)
   assert(await page.evaluate(() => window.__cam.position.y > 0.5), 'below ground')
+  // detailed asset trees follow the walker (no procedural blobs up close far from home)
+  const split0 = await page.evaluate(() => window.__treeSplit.join(','))
+  await page.evaluate(() => { window.__cam.position.set(-60, 2, -150) })
+  await page.waitForFunction((s0) => window.__treeSplit.join(',') !== s0 && window.__treeSplit[0] > 20, split0, { timeout: 60000 })
   // Esc (or the 返回 button) glides back to the home framing
   await page.click('[data-testid=roam-exit]')
   await page.waitForFunction(() => { const p = window.__cam.position; return Math.hypot(p.x - 8, p.y - 15, p.z - 38) < 1.5 }, null, { timeout: 120000 })

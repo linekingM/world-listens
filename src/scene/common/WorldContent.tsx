@@ -1,8 +1,9 @@
 import { addFlagstones } from './materialFx'
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ASSETS_ON, AssetTrees, PathFlora } from './AssetTrees'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
+import { useWorld } from '../../state/worldStore'
 import { useEnv, useStyleDef } from './EnvContext'
 import {
   buildCity, buildLamp, lanternGlassGeo, buildMountains, buildRoad, buildTerrain, buildTree, windowTexture, facadeTexture,
@@ -12,6 +13,7 @@ import { getMaterial } from './materials'
 import { smoothstep } from '../../lib/random'
 
 const VARIANTS = 3
+const ROAM_RING = 70
 /** weighted species mix: umbrella trees and birches are accents, not the norm */
 const variantOf = (kind: number, t: number) => kind === 0 ? (t < 0.48 ? 0 : t < 0.94 ? 1 : 2) : kind === 2 ? (t < 0.4 ? 0 : t < 0.7 ? 1 : 2) : Math.floor(t * 3)
 const TINT_WARM = new THREE.Color('#fff0c8'), TINT_COOL = new THREE.Color('#d6f0e6')
@@ -119,16 +121,32 @@ export function WorldContent() {
   // quality > quantity: keep ~55% of the near spots for the detailed asset trees, drop the rest entirely
   // also keep the hero frame's lower-left corner clear (a big crown there crops against the rail)
   const cornerClear = (s: { x: number; z: number }) => !(s.x - roadX(s.z) < -12 && Math.hypot(s.x - 8, s.z - 38) < 40)
-  const nearSpots = useMemo(() => allSpots.filter((s) => isNear(s) && cornerClear(s) && ((s.tint * 17.3 + s.x * 0.013) % 1) < (s.x < roadX(s.z) ? 0.38 : 0.55)), [allSpots])
-  const spots = useMemo(() => allSpots.filter((s) => !isNear(s)), [allSpots])
-  const trees = useMemo(() => {
-    const groups: { geo: THREE.BufferGeometry; spots: typeof spots }[] = []
-    for (const kind of [0, 1, 2] as const) for (let v = 0; v < VARIANTS; v++) {
-      const sub = spots.filter((s) => s.kind === kind && variantOf(kind, s.tint) === v)
-      if (sub.length) groups.push({ geo: buildTree(kind, opts, v), spots: sub })
-    }
-    return groups
-  }, [opts, spots])
+  const homeNear = useMemo(() => allSpots.filter((s) => isNear(s) && cornerClear(s) && ((s.tint * 17.3 + s.x * 0.013) % 1) < (s.x < roadX(s.z) ? 0.38 : 0.55)), [allSpots])
+  const homeFar = useMemo(() => allSpots.filter((s) => !isNear(s)), [allSpots])
+  // free-roam: every tree within ~70 m of the walker is a detailed asset tree (no thinning, so nothing pops away);
+  // the ring re-centres on a 20 m grid as you move. Orbit keeps the composed home set above.
+  const camMode = useWorld((s) => s.camMode)
+  const camera = useThree((s) => s.camera)
+  const [focus, setFocus] = useState<string | null>(null)
+  useFrame(() => {
+    const key = useAssets && camMode === 'roam' ? `${Math.round(camera.position.x / 20) * 20},${Math.round(camera.position.z / 20) * 20}` : null
+    if (key !== focus) setFocus(key)
+  })
+  const { nearSpots, spots } = useMemo(() => {
+    if (!focus) return { nearSpots: homeNear, spots: homeFar }
+    const [fx, fz] = focus.split(',').map(Number)
+    const ring = (s: { x: number; z: number }) => Math.hypot(s.x - fx, s.z - fz) < ROAM_RING
+    return { nearSpots: allSpots.filter(ring), spots: allSpots.filter((s) => !ring(s)) }
+  }, [focus, allSpots, homeNear, homeFar])
+  if (typeof window !== 'undefined') (window as unknown as { __treeSplit: number[] }).__treeSplit = [nearSpots.length, spots.length]
+  const treeGeos = useMemo(() => {
+    const out: { kind: 0 | 1 | 2; v: number; geo: THREE.BufferGeometry }[] = []
+    for (const kind of [0, 1, 2] as const) for (let v = 0; v < VARIANTS; v++) out.push({ kind, v, geo: buildTree(kind, opts, v) })
+    return out
+  }, [opts])
+  const trees = useMemo(() => treeGeos
+    .map((g) => ({ geo: g.geo, spots: spots.filter((s) => s.kind === g.kind && variantOf(g.kind, s.tint) === g.v) }))
+    .filter((g) => g.spots.length), [treeGeos, spots])
 
   const mats = useMemo(() => ({
     terrain: getMaterial(style, 'terrain'),
@@ -151,8 +169,8 @@ export function WorldContent() {
   })
 
   useEffect(() => () => {
-    for (const g of [terrain, road.road, road.markings, road.curbs, city, mountains, ...trees.map((t) => t.geo)]) g.dispose()
-  }, [terrain, road, city, mountains, trees])
+    for (const g of [terrain, road.road, road.markings, road.curbs, city, mountains, ...treeGeos.map((t) => t.geo)]) g.dispose()
+  }, [terrain, road, city, mountains, treeGeos])
 
   return (
     <group>
@@ -162,7 +180,7 @@ export function WorldContent() {
       <mesh geometry={road.curbs} material={mats.road} receiveShadow castShadow />
       <mesh geometry={city} material={mats.city} castShadow receiveShadow />
       <mesh geometry={mountains} material={mats.mountain} />
-      {trees.map((t, i) => <TreeInstances key={i} geometry={t.geo} material={mats.foliage} spots={t.spots} />)}
+      {trees.map((t) => <TreeInstances key={`${t.geo.uuid}-${t.spots.length}`} geometry={t.geo} material={mats.foliage} spots={t.spots} />)}
       {nearSpots.length > 0 && <Suspense fallback={null}><AssetTrees spots={nearSpots} /></Suspense>}
       {useAssets && <Suspense fallback={null}><PathFlora /></Suspense>}
       <Lamps />
