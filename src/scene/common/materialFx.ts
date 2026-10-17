@@ -132,6 +132,20 @@ export function addLeafGlow(mat: THREE.Material, k = 1) {
   })
 }
 
+/** Warm bounce light into the shade (sun-tinted, fades with the sun), so backlit cliffs keep their colour bands. */
+export function addBounceLight(mat: THREE.Material, k: number) {
+  return chain(mat, 'bounce' + k, (s) => {
+    s.uniforms.uSunCol = fxUniforms.uSunCol
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + (s.fragmentShader.includes('uniform vec3 uSunCol') ? '' : 'uniform vec3 uSunCol;'))
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        {
+          float lit = clamp(dot(reflectedLight.directDiffuse, vec3(0.333)) * 2.0, 0.0, 1.0);
+          reflectedLight.indirectDiffuse += diffuseColor.rgb * uSunCol * ${k.toFixed(2)} * (1.0 - lit);
+        }`)
+  })
+}
+
 /** Scale fog on one material (keeps floating islands readable as silhouettes in golden haze). */
 export function addFogScale(mat: THREE.Material, k: number) {
   return chain(mat, 'fogk' + k, (s) => {

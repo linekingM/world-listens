@@ -415,28 +415,36 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
   const extra: THREE.BufferGeometry[] = []
   const r = rng(spec.seed * 31 + 5)
   const sc = R / 16
-  const rootC = col('#4a3628'), vineC = col('#46682c'), vineTip = col('#5f8a34')
-  const nRoots = Math.round(10 + R * 0.9)
+  const rootC = col('#4a3628'), vineC = col('#4d6e2e'), leafA = col('#5f8a34'), leafB = col('#7a9c3e')
+  const nRoots = Math.round(14 + R * 1.3)
   for (let i = 0; i < nRoots; i++) {
     const ang = r() * Math.PI * 2
     const rr = R * rimAt(ang) * (0.86 + r() * 0.08)
     let x = Math.cos(ang) * rr, z = Math.sin(ang) * rr, y = -0.25 - r() * 0.8 * sc
-    const vine = r() < 0.45
-    const len = (vine ? 3 + r() * 5 : 1.6 + r() * 4) * sc
-    const segs = 3
-    let rad0 = (vine ? 0.12 : 0.2) * sc
+    const vine = r() < 0.6
+    // vines: slender strands dotted with small leaf clusters; roots: short tapering bark tendrils
+    const len = (vine ? 3.5 + r() * 6 : 1.4 + r() * 3) * sc
+    const segs = vine ? 4 : 3
+    let rad0 = (vine ? 0.055 : 0.13) * sc
     for (let k = 0; k < segs; k++) {
-      const out = (r() - 0.3) * 0.5 * sc
-      const nx = x + Math.cos(ang) * out + (r() - 0.5) * 0.4 * sc, nz = z + Math.sin(ang) * out + (r() - 0.5) * 0.4 * sc
+      const out = (r() - 0.3) * (vine ? 0.35 : 0.5) * sc
+      const nx = x + Math.cos(ang) * out + (r() - 0.5) * 0.35 * sc, nz = z + Math.sin(ang) * out + (r() - 0.5) * 0.35 * sc
       const ny = y - len / segs
-      const rad1 = rad0 * 0.62
-      extra.push(solidColor(branch(x, y, z, nx, ny, nz, rad0, rad1, 4), vine ? vineC : rootC))
+      const rad1 = rad0 * (vine ? 0.85 : 0.6)
+      extra.push(solidColor(branch(x, y, z, nx, ny, nz, rad0, rad1, vine ? 3 : 4), vine ? vineC : rootC))
+      if (vine) for (let j = 0; j < 2; j++) {
+        const f = 0.3 + j * 0.45, s0 = (0.2 + r() * 0.12) * sc * (1 - k * 0.12)
+        const lf = blob(s0, 0, 300 + i * 9 + k * 2 + j, 0.35)
+        lf.scale(1.2, 0.8, 1.2)
+        lf.translate(x + (nx - x) * f + (r() - 0.5) * 0.25 * sc, y + (ny - y) * f, z + (nz - z) * f + (r() - 0.5) * 0.25 * sc)
+        extra.push(solidColor(lf, (k + j) % 2 ? leafA : leafB))
+      }
       x = nx; y = ny; z = nz; rad0 = rad1
     }
     if (vine) {
-      const tip = blob(0.45 * sc, 0, 200 + i, 0.3)
-      tip.scale(1, 1.5, 1); tip.translate(x, y + 0.2 * sc, z)
-      extra.push(solidColor(tip, vineTip))
+      const tip = blob(0.26 * sc, 0, 200 + i, 0.3)
+      tip.scale(1, 1.4, 1); tip.translate(x, y + 0.1 * sc, z)
+      extra.push(solidColor(tip, leafB))
     }
   }
   const merged = mergeGeometries([normalizeAttrs(gs), ...extra.map((e) => normalizeAttrs(e))])!
