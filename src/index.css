@@ -137,6 +137,20 @@ button { font: inherit; color: inherit; }
 .sun-dial.is-collapsed { gap: 10px; padding: 6px 14px 6px 12px; border-radius: 999px; }
 .sun-dial .dial-readout { appearance: none; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; padding: 0; }
 .sun-dial .dial-more { opacity: 0.7; font-size: 0.85em; }
+
+.sun-dial { flex-direction: column; align-items: stretch; gap: 8px; }
+.sun-dial.is-collapsed { flex-direction: row; align-items: center; }
+.dial-main { display: flex; align-items: center; gap: 18px; }
+.sun-dial.is-collapsed .dial-main { gap: 10px; }
+.sun-look { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.12); font-size: 11px; color: rgba(255,255,255,0.85); }
+.sun-look-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sun-look-label { font-weight: 500; opacity: 0.9; min-width: 36px; }
+.sun-look-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+.sun-look-presets .pill.sm { padding: 3px 8px; font-size: 11px; }
+.sun-look-field { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 120px; }
+.sun-look-field input[type=range] { width: 100%; accent-color: #ffb070; }
+.sun-look-nums { font-variant-numeric: tabular-nums; font-size: 10px; opacity: 0.75; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; word-break: break-all; }
+.sun-look-nums .swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); flex: none; }
 .dial-readout { display: flex; flex-direction: column; align-items: flex-start; min-width: 70px; }
 .dial-time { font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; line-height: 1.1; }
 .dial-phase { font-family: var(--font-title); font-size: 12.5px; letter-spacing: 0.32em; color: var(--ink-soft); margin-top: 2px; }
@@ -209,6 +223,9 @@ button { font: inherit; color: inherit; }
   .sun-dial { left: 12px; right: 12px; transform: none; bottom: calc(12px + env(safe-area-inset-bottom)); padding: 4px 12px 2px 14px; gap: 10px; border-radius: 20px; }
   .sun-dial.is-collapsed { left: 50%; right: auto; transform: translateX(-50%); width: auto; max-width: calc(100vw - 24px); border-radius: 999px; padding: 6px 12px 6px 10px; gap: 8px; }
   .sun-dial.is-open { left: 12px; right: 12px; transform: none; }
+  .sun-look { font-size: 10px; gap: 4px; }
+  .sun-look-field { min-width: 90px; }
+  .dial-main { gap: 10px; }
   .dial-readout { min-width: 54px; }
   .play-btn { width: 30px; height: 30px; }
   .rate-pill { font-size: 9.5px; padding: 1px 4px; }

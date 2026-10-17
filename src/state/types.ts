@@ -38,6 +38,8 @@ export interface WorldDoc {
   play?: { on: boolean; rate: number }
   /** calendar day index for cloud layout; advances when time crosses midnight */
   day?: number
+  /** sun disc colour: auto = physical elevation curve; manual = warmth/hue override */
+  sunLook?: { mode: 'auto' | 'manual'; warmth: number; hue: number }
 }
 
 export type Panel = 'weather' | 'add' | 'gravity' | 'camera' | 'save' | 'share' | null

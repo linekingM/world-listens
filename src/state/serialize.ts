@@ -60,10 +60,21 @@ export function parseWorld(raw: unknown): WorldDoc {
     clouds,
     play: parsePlay(r.play),
     day: Math.max(0, Math.floor(num(r.day, 0, 0, 1e7))),
+    sunLook: parseSunLook(r.sunLook),
   }
 }
 
 export const PLAY_RATES = [5, 15, 30, 60, 120]
+
+function parseSunLook(p: unknown): WorldDoc['sunLook'] {
+  if (!p || typeof p !== 'object') return undefined
+  const x = p as Record<string, unknown>
+  const mode = x.mode === 'manual' ? 'manual' as const : 'auto' as const
+  const warmth = num(x.warmth, 0, 0, 1)
+  const hue = num(x.hue, 0, -30, 30)
+  if (mode === 'auto' && warmth === 0 && hue === 0) return undefined
+  return { mode, warmth, hue }
+}
 function parsePlay(p: unknown): WorldDoc['play'] {
   if (!p || typeof p !== 'object') return undefined
   const x = p as Record<string, unknown>

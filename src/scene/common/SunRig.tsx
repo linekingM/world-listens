@@ -74,7 +74,15 @@ export function SunRig() {
     hemi.current.intensity = L.hemiI
     const fog = scene.fog as THREE.FogExp2
     fog.color.copy(L.fog)
-    fog.density = style.fogDensity * (1 + env.sun.golden * 0.08 + env.sun.night * 0.12 + cover * 0.3 + mist * 1.7)
+    // Correlated haze: dawn a bit thicker, midday clearer, cloudy/mist thicker; mild day jitter
+    const hour = env.time
+    const dawn = Math.max(0, 1 - Math.abs(hour - 6.5) / 2.5) // peak ~6:30
+    const middayClear = env.sun.day * (1 - env.sun.golden) * 0.12
+    const day = useWorld.getState().day ?? 0
+    const dayJitter = 0.92 + (Math.abs(Math.sin(day * 12.9898 + 78.233)) * 0.16) // mild ~0.92–1.08 per day
+    fog.density = style.fogDensity * dayJitter * (
+      1 + dawn * 0.28 + env.sun.golden * 0.12 + env.sun.night * 0.12 + cover * 0.45 + mist * 1.5 - middayClear
+    )
 
     // ── shared shader uniforms ──
     fxUniforms.uTime.value = state.clock.elapsedTime
@@ -82,7 +90,7 @@ export function SunRig() {
     fxUniforms.uSunDir.value.copy(env.sun.dir)
     fxUniforms.uSunView.value.copy(env.sun.dir).transformDirection(camera.matrixWorldInverse)
     fxUniforms.uSunCol.value.copy(L.sun)
-    fxUniforms.uValley.value = 0.06 + env.sun.golden * 0.14 + env.weather.mist * 0.3 + env.sun.night * 0.06
+    fxUniforms.uValley.value = 0.18 + env.sun.golden * 0.25 + env.weather.mist * 0.3 + env.sun.night * 0.08
     fxUniforms.uLeafGlow.value = smoothstep(-3, 4, env.sun.elevation) * (1 - cover * 0.75)
     fxUniforms.uGlint.value = env.sun.golden * smoothstep(-2, 2, env.sun.elevation) * (1 - cover)
     fxUniforms.uNight.value = env.sun.night * (1 - cover * 0.6)

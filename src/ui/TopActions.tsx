@@ -148,7 +148,7 @@ function SharePanel() {
       }, 200)
     }
     const unsub = useWorld.subscribe((s, prev) => {
-      if (s.name === prev.name && s.time === prev.time && s.weather === prev.weather && s.gravity === prev.gravity && s.orbit === prev.orbit && s.objects === prev.objects && s.clouds === prev.clouds) return
+      if (s.name === prev.name && s.time === prev.time && s.weather === prev.weather && s.gravity === prev.gravity && s.orbit === prev.orbit && s.objects === prev.objects && s.clouds === prev.clouds && JSON.stringify(s.sunLook) === JSON.stringify(prev.sunLook)) return
       schedule()
     })
     schedule()

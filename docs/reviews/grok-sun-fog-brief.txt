@@ -1,0 +1,22 @@
+# IMPLEMENT NOW — minimal sun/haze/dial (world-listens)
+
+You MUST implement in this turn. Do not stop at audit-only.
+
+## Hard rules
+- Tiny diffs only. Fine-tune, NOT redesign. No overcorrection.
+- NO deploy / force-push / history rewrite / character mode / unrelated refactors.
+- Exact plan (do these only):
+  1. `src/world/sunLook.ts` — hour-aware `physicalSunWarmth(elev, hour?)`: dawn soft rose/gold → white most of day (incl 15:00) → warm only late dusk. Update `effectiveWarmth` to pass hour.
+  2. `src/scene/styles/cinematic/SkyA.tsx` — REMOVE `nearDisc` hole-punch `(1.0 - nearDisc * 0.85)` and any contrasting outer rim; single soft disc; pass hour into warmth.
+  3. `SunRig.tsx` + `CityHaze.tsx` — mild haze × weather × time (dawn↑ midday↓ cloudy/mist↑) + small day jitter. No extreme fog.
+  4. `SunDial.tsx` — trim if bloated; keep compact presets/sliders + numeric readout.
+  5. `npx tsc -b`; shots to `shots/qa-review/phys-sun/` at ~07:00, 15:00, 18:00, 18:40; look once; brief honest notes.
+- Do NOT rewrite SkyA wholesale. Do NOT redesign dial chrome. Do NOT change palette light keys unless required for disc-only mustard.
+
+## Schema
+```ts
+sunLook?: { mode: 'auto' | 'manual'; warmth: number; hue: number }
+```
+`window.__sunLook` live readout OK.
+
+Write 3-line plan then EDIT immediately. End with report: files touched, what you did NOT change. No deploy.

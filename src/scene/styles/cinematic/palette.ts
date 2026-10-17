@@ -11,13 +11,13 @@ export const paletteA: WorldPalette = {
   mountain: '#8a98aa', mountainSnow: '#f6f8fb', water: '#9cc8e6',
 }
 
+/** Lighting keys: midday sun near white; warm only at low elevation. Soft blue-grey fog (not chalk, not zero). */
 export const lightKeysA: LightKey[] = [
-  // clearer physical day: deeper zenith blues, cooler less-white fog; low sun stays orange-amber (not cream)
   { elev: -14, sun: '#b8cdf4', sunI: 0.9, skyTop: '#0a1638', skyHorizon: '#223a6c', hemiSky: '#5a7fc4', hemiGround: '#1a1f3e', hemiI: 1.0, fog: '#1d3158' },
-  { elev: -4, sun: '#ff5520', sunI: 0.0, skyTop: '#26386b', skyHorizon: '#e07a62', hemiSky: '#6a62a6', hemiGround: '#33283f', hemiI: 0.6, fog: '#6f6886' },
-  { elev: 1, sun: '#ff4a12', sunI: 1.85, skyTop: '#3a5f98', skyHorizon: '#ff8a4a', hemiSky: '#8e88c8', hemiGround: '#5c4658', hemiI: 1.0, fog: '#c88868' },
-  { elev: 7, sun: '#ff6a1c', sunI: 2.55, skyTop: '#4a78bc', skyHorizon: '#ff9e5c', hemiSky: '#9aa0d4', hemiGround: '#6c5660', hemiI: 0.98, fog: '#d4a078' },
-  { elev: 14, sun: '#ff8a28', sunI: 2.9, skyTop: '#3f7acc', skyHorizon: '#e8b888', hemiSky: '#9cb4dc', hemiGround: '#6e6a48', hemiI: 0.9, fog: '#c8a888' },
-  { elev: 26, sun: '#ffe0a8', sunI: 3.15, skyTop: '#2f6ec8', skyHorizon: '#62a0dc', hemiSky: '#8eb8e4', hemiGround: '#5b7456', hemiI: 0.88, fog: '#6a9ccc' },
-  { elev: 64, sun: '#fff2dc', sunI: 3.25, skyTop: '#2464c4', skyHorizon: '#4e94d6', hemiSky: '#88b4e8', hemiGround: '#577052', hemiI: 0.8, fog: '#5e90c4' },
+  { elev: -4, sun: '#ff8a5a', sunI: 0.0, skyTop: '#26386b', skyHorizon: '#e07a62', hemiSky: '#6a62a6', hemiGround: '#33283f', hemiI: 0.6, fog: '#6f6886' },
+  { elev: 1, sun: '#ff7a38', sunI: 1.9, skyTop: '#46699f', skyHorizon: '#ff9a68', hemiSky: '#9a92d4', hemiGround: '#5c4658', hemiI: 1.05, fog: '#d4a090' },
+  { elev: 6, sun: '#ffb070', sunI: 2.6, skyTop: '#5080c0', skyHorizon: '#ffc898', hemiSky: '#a8a8dc', hemiGround: '#6c5660', hemiI: 1.0, fog: '#e0c0a0' },
+  { elev: 14, sun: '#ffe8c8', sunI: 3.1, skyTop: '#4f86d0', skyHorizon: '#e8d8c0', hemiSky: '#b0c4e4', hemiGround: '#7a6e44', hemiI: 0.95, fog: '#d0dce8' },
+  { elev: 26, sun: '#fff4e6', sunI: 3.35, skyTop: '#4a88d4', skyHorizon: '#c8dcf0', hemiSky: '#a9c6ec', hemiGround: '#5b7456', hemiI: 0.92, fog: '#c0d4e8' },
+  { elev: 64, sun: '#fffaf4', sunI: 3.45, skyTop: '#3c7ed6', skyHorizon: '#b8d4ec', hemiSky: '#a6c4ec', hemiGround: '#577052', hemiI: 0.86, fog: '#b4cce4' },
 ]

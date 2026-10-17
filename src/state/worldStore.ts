@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CloudObject, ObjType, Panel, Vec3, WeatherId, WorldDoc, WorldObject } from './types'
+import { DEFAULT_SUN_LOOK, clampSunLook, type SunLook } from '../world/sunLook'
 import { defaultWorld } from './defaultWorld'
 import { sims } from '../scene/systems/simulation'
 import { detectQuality, initialQuality, storeAutoQuality, storeUserQuality, type Quality } from './quality'
@@ -76,6 +77,8 @@ interface Actions {
   setQuality: (q: Quality | null) => void
   /** automatic step from the fps probe (only while qualityAuto) */
   autoQuality: (q: Quality) => void
+  sunLook: SunLook
+  setSunLook: (patch: Partial<SunLook>) => void
 }
 
 export type WorldState = WorldDoc & UIState & Actions
@@ -106,6 +109,8 @@ export const useWorld = create<WorldState>((set, get) => ({
   setPlaying: (playing) => set({ playing }),
   setPlayRate: (playRate) => set({ playRate }),
   setTimeHeld: (timeHeld) => set({ timeHeld }),
+  sunLook: clampSunLook(base.sunLook),
+  setSunLook: (patch) => set((s) => ({ sunLook: clampSunLook({ ...s.sunLook, ...patch }) })),
   cameraResetTick: 0,
   camMode: 'orbit',
   toasts: [],
@@ -171,11 +176,12 @@ export const useWorld = create<WorldState>((set, get) => ({
   setCamMode: (camMode) => set({ camMode, panel: null, placing: null }),
 
   // a new world: drop per-object sim offsets (ids like bench-0 are reused) and stale 撤销 toasts
-  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, day: doc.day ?? 0, playing: doc.play?.on ?? false, playRate: doc.play?.rate ?? 30, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
-  resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), playing: false, playRate: 30, selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, day: doc.day ?? 0, sunLook: clampSunLook(doc.sunLook), playing: doc.play?.on ?? false, playRate: doc.play?.rate ?? 30, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), sunLook: { ...DEFAULT_SUN_LOOK }, playing: false, playRate: 30, selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
   getDoc: () => {
     const s = get()
-    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds, play: { on: s.playing, rate: s.playRate }, day: s.day ?? 0 }
+    const sunLook = s.sunLook.mode === 'auto' && s.sunLook.warmth === 0 && s.sunLook.hue === 0 ? undefined : s.sunLook
+    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds, play: { on: s.playing, rate: s.playRate }, day: s.day ?? 0, sunLook }
   },
   toast: (text, kind = 'info', action) => {
     const id = ++toastId
