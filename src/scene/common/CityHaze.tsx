@@ -27,7 +27,7 @@ export function CityHaze() {
     if (fog) mat.uniforms.uCol.value.copy(fog.color)
     mat.uniforms.uSun.value.copy(env.light.sun)
     mat.uniforms.uTime.value = s.clock.elapsedTime
-    mat.uniforms.uA.value = (0.26 + env.sun.golden * 0.24 + env.weather.mist * 0.4) * (1 - env.sun.night * 0.55)
+    mat.uniforms.uA.value = (0.12 + env.sun.golden * 0.18 + env.weather.mist * 0.45) * (1 - env.sun.night * 0.55)
   })
   return (
     <group>

@@ -85,9 +85,9 @@ export function cityBuildings(): Building[] {
     }
   }
   // landmarks: an elegant campanile on the avenue axis, a domed cathedral, a clock tower, two slender towers
-  out.push({ x: cx + 26, z: -385, w: 8, d: 8, h: 82, tone: 0.42, kind: 5 })
+  out.push({ x: cx + 26, z: -385, w: 8.5, d: 8.5, h: 88, tone: 0.42, kind: 5 })
   out.push({ x: cx - 30, z: -405, w: 30, d: 36, h: 28, tone: 0.15, kind: 6 })
-  out.push({ x: cx + 62, z: -362, w: 6, d: 6, h: 40, tone: 0.7, kind: 5 })
+  out.push({ x: cx + 62, z: -362, w: 6.5, d: 6.5, h: 50, tone: 0.7, kind: 5 })
   out.push({ x: cx - 78, z: -380, w: 7, d: 7, h: 66, tone: 0.3, kind: 1 })
   out.push({ x: cx + 96, z: -420, w: 7, d: 7, h: 62, tone: 0.8, kind: 1 })
   return out

@@ -118,7 +118,9 @@ export function addLeafGlow(mat: THREE.Material, k = 1) {
     s.uniforms.uSunCol = fxUniforms.uSunCol
     s.uniforms.uLeafGlow = fxUniforms.uLeafGlow
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uSunView; uniform vec3 uSunCol; uniform float uLeafGlow;')
+      .replace('#include <common>', '#include <common>\n' +
+        (s.fragmentShader.includes('uniform vec3 uSunView') ? '' : 'uniform vec3 uSunView; ') +
+        (s.fragmentShader.includes('uniform vec3 uSunCol') ? '' : 'uniform vec3 uSunCol; ') + 'uniform float uLeafGlow;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         {
           vec3 Vv = normalize(vViewPosition);

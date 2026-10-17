@@ -386,16 +386,22 @@ export function buildIsland(spec: IslandSpec, { lowPoly, palette }: BuildOpts) {
   gs.computeVertexNormals()
   const grass = col(palette.grassA), grass2 = col(palette.grassB), dirt = col(palette.dirt), rock = col(palette.rock), rockD = col(palette.rockDark)
   const sand = col('#d6b48c'), slate = col('#5d6c7c')
+  const lipC = col('#e9c48e'), ochre = col('#c99a62'), rose = col('#a8644c'), baseC = col('#5e4a52'), baseD = col('#3c3445')
   setColors(gs, (p, n, o) => {
     if (p.y > -0.25 && n.y > 0.2) {
       o.copy(grass).lerp(grass2, fbm(p.x * 0.3 + spec.seed, p.z * 0.3, 2))
     } else {
       const t = clamp(-p.y / D)
-      o.copy(dirt).lerp(rock, smoothstep(0.02, 0.22, t)).lerp(rockD, smoothstep(0.45, 1, t))
-      // sediment bands: alternating warm sandstone / cool slate layers, wobbling along the rim
-      const wob = noise2(Math.atan2(p.z, p.x) * 2 + spec.seed, 1.7) * 0.9
-      const b = Math.sin((p.y + wob) * 0.55 + spec.seed)
-      o.lerp(b > 0.2 ? sand : slate, smoothstep(0.3, 0.85, Math.abs(b)) * 0.6 * smoothstep(0.03, 0.12, t))
+      // three clear bands (wobbling boundaries): warm ochre sandstone lip -> rose/terracotta cliff -> dark cool tapered base
+      const wob = noise2(Math.atan2(p.z, p.x) * 2 + spec.seed, 1.7) * 0.07
+      const tb = t + wob
+      o.copy(lipC).lerp(ochre, smoothstep(0.02, 0.07, tb))
+        .lerp(rose, smoothstep(0.24, 0.32, tb))
+        .lerp(baseC, smoothstep(0.55, 0.68, tb)).lerp(baseD, smoothstep(0.75, 1, tb))
+      // faint sediment lines inside each band
+      const b = Math.sin((p.y + wob * 12) * 0.9 + spec.seed)
+      o.lerp(b > 0 ? sand : slate, smoothstep(0.75, 0.98, Math.abs(b)) * 0.22 * smoothstep(0.03, 0.12, t))
+      void dirt; void rock; void rockD
       // dark seams under each ledge + mossy tops of ledges
       if (n.y < -0.35) o.multiplyScalar(0.62)
       if (n.y > 0.45 && t > 0.05) o.lerp(grass, 0.75)
@@ -485,8 +491,8 @@ export function buildHouse(kind: 'house' | 'tower', variant: number, { lowPoly, 
 
 // ───────────────────────────── city ─────────────────────────────
 const STONE = ['#ecdcc0', '#e4c9a2', '#d9b48c', '#f0e6d3', '#dcbf98', '#cf9d76', '#e8d2b0']
-const TERRACOTTA = ['#b9603f', '#a9573c', '#c47249', '#9c4e37']
-const COPPER = '#7fa392', GARDEN = '#6c8a46', CREAM = '#f4ecd8', WATER = '#9cc8e6'
+const TERRACOTTA = ['#c2563a', '#b04c33', '#d06a3e', '#a8452f', '#c97c4a']
+const COPPER = '#5ea58e', GARDEN = '#6c8a46', CREAM = '#f4ecd8', WATER = '#9cc8e6'
 
 export function buildCity(list: Building[], { lowPoly }: BuildOpts) {
   const parts: THREE.BufferGeometry[] = []
@@ -638,13 +644,13 @@ export function windowTexture() {
   ctx.fillRect(0, 0, s, s)
   const r = rng(5)
   for (let y = 0; y < n; y++) {
-    // lights come in runs along a floor (apartments / offices), most floors dark
-    const floorBusy = r() < 0.35 ? 0.24 : 0.03
-    let on = false
+    // lights cluster in a few lived-in homes (blocks of 3x2 windows), the rest of the facade stays dark
     for (let x = 0; x < n; x++) {
-      if (r() < 0.3) on = r() < floorBusy
+      const bx = Math.floor(x / 3), by = Math.floor(y / 2)
+      const home = ((Math.sin(bx * 12.9898 + by * 78.233) * 43758.5453) % 1 + 1) % 1
+      const on = home > 0.76 ? r() < 0.85 : r() < 0.02
       const warm = r()
-      ctx.fillStyle = on ? (warm > 0.85 ? `rgb(${190 + warm * 30},${215},${235})` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`) : '#0b0d12'
+      ctx.fillStyle = on ? (warm > 0.95 ? `rgb(${190 + warm * 30},${215},${235})` : `rgb(${225 + warm * 30},${175 + warm * 45},${110 + warm * 60})`) : '#0b0d12'
       ctx.fillRect(x * c + 5, y * c + 3, c - 10, c - 8)
     }
   }
