@@ -39,10 +39,10 @@ function Fireflies() {
     g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(FN * 3), 3))
     return g
   }, [])
-  const mat = useMemo(() => new THREE.PointsMaterial({ map: glowTexture('rgba(255,255,220,1)', 'rgba(200,255,120,0.5)'), size: 0.5, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }), [])
+  const mat = useMemo(() => new THREE.PointsMaterial({ map: glowTexture('rgba(255,255,220,1)', 'rgba(200,255,120,0.5)'), size: 0.75, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }), [])
   // a new cluster spot: meadow beside the path somewhere in front of / around the camera, never on the road
   const place = (c: (typeof st.clusters)[number], cam: THREE.Vector3) => {
-    const d = 12 + r() * 85, a = (r() - 0.5) * 2.4
+    const d = 10 + r() * 70, a = (r() - 0.5) * 2.2
     const fx = FWD.x * Math.cos(a) - FWD.z * Math.sin(a), fz = FWD.x * Math.sin(a) + FWD.z * Math.cos(a)
     c.x = cam.x + fx * d; c.z = cam.z + fz * d
     const rx = roadX(c.z), side = c.x < rx ? -1 : 1
@@ -74,7 +74,9 @@ function Fireflies() {
     // clusters drift, age and relocate when spent or left far behind
     for (const c of st.clusters) {
       c.life += dt; c.x += c.vx * dt; c.z += c.vz * dt
-      if (c.life > c.dur || Math.hypot(c.x - cam.x, c.z - cam.z) > 130) place(c, cam)
+      // spent, beyond the distance fade, or well behind the camera: move it somewhere ahead (never visibly)
+      const ahead = (c.x - cam.x) * FWD.x + (c.z - cam.z) * FWD.z
+      if (c.life > c.dur || Math.hypot(c.x - cam.x, c.z - cam.z) > 108 || ahead < -25) place(c, cam)
     }
     const p = geo.getAttribute('position') as THREE.BufferAttribute, col = geo.getAttribute('color') as THREE.BufferAttribute
     const active = Math.round(FN * Math.min(1, st.shown))
@@ -88,7 +90,7 @@ function Fireflies() {
       // each cluster fades in/out over its life; far fireflies fade before they get small, so no swarm edge
       const life = smoothstep(0, 5, c.life) * (1 - smoothstep(c.dur - 6, c.dur, c.life))
       const far = 1 - smoothstep(55, 105, Math.hypot(x - cam.x, z - cam.z))
-      const blink = Math.max(0, Math.sin(t * 1.3 + ph * 3)) ** 6
+      const blink = 0.12 + 0.88 * Math.max(0, Math.sin(t * 1.3 + ph * 3)) ** 4
       const k = i < active ? blink * life * far * 2 * Math.min(1, st.shown * 1.5) : 0
       col.setXYZ(i, 0.9 * k, 1.0 * k, 0.45 * k)
     }

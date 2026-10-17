@@ -71,11 +71,11 @@ export function Waterfall({ position, height = 26, width = 1.8, color = '#dff3ff
   const inner = useMemo(() => { const m = mat.clone(); m.uniforms.uSeed.value = 0.63; return m }, [mat])
   const tex = useMemo(() => ({
     puff: softDisc([[0, 'rgba(255,255,255,0.7)'], [0.5, 'rgba(255,255,255,0.22)'], [1, 'rgba(255,255,255,0)']]),
-    pool: softDisc([[0, 'rgba(255,255,255,1)'], [0.72, 'rgba(255,255,255,0.95)'], [1, 'rgba(255,255,255,0)']]),
+    pool: softDisc([[0, 'rgba(255,255,255,1)'], [0.55, 'rgba(255,255,255,0.9)'], [1, 'rgba(255,255,255,0)']]),
     ring: softDisc([[0, 'rgba(255,255,255,0)'], [0.55, 'rgba(255,255,255,0)'], [0.78, 'rgba(255,255,255,0.8)'], [1, 'rgba(255,255,255,0)']]),
   }), [])
   // pool + foam use real (lit) materials so they sit in the scene's light like the meadow around them
-  const poolMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#40606c', roughness: 0.12, metalness: 0.1, alphaMap: tex.pool, transparent: true, opacity: 0.92, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), [tex])
+  const poolMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#6f95a2', roughness: 0.18, metalness: 0.05, alphaMap: tex.pool, transparent: true, opacity: 0.78, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), [tex])
   const foamMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f2f6f6', roughness: 0.8, alphaMap: tex.ring, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }), [tex])
   const puffMats = useMemo(() => Array.from({ length: 5 }, () => new THREE.SpriteMaterial({ map: tex.puff, transparent: true, depthWrite: false, opacity: 0, fog: true })), [tex])
 
