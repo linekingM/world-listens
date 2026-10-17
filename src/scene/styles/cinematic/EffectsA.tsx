@@ -1,34 +1,62 @@
-import { useState } from 'react'
+import { useMemo } from 'react'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
-import { Bloom, EffectComposer, GodRays, Noise, SMAA, ToneMapping, Vignette } from '@react-three/postprocessing'
-import { BlendFunction, ToneMappingMode } from 'postprocessing'
+import { useFrame, useThree } from '@react-three/fiber'
+import { Bloom, EffectComposer, Noise, SMAA, ToneMapping, Vignette } from '@react-three/postprocessing'
+import { SunShaftsEffect } from './SunShafts'
+import { BlendFunction, Effect, EffectPass, ToneMappingMode } from 'postprocessing'
 import { sharedEnv as env } from '../../common/sharedEnv'
 import { smoothstep } from '../../../lib/random'
 import { useWorld } from '../../../state/worldStore'
 import { QSPEC } from '../../../state/quality'
 
-const sunMat = new THREE.MeshBasicMaterial({ color: '#ffd9a0', toneMapped: false, fog: false })
+/**
+ * First pass after the scene render: replace NaN/Inf (and absurd half-float values) before god rays and bloom read
+ * the frame. A single bad pixel would otherwise be smeared by the bloom mip chain into a black half/full screen.
+ */
+class ScrubEffect extends Effect {
+  constructor() {
+    super('Scrub', /* glsl */`
+      float scrub1(float v) { return (v >= 0.0 && v <= 2048.0) ? v : (v > 2048.0 ? 2048.0 : 0.0); }
+      void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+        vec4 c = inputColor;
+        if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0, 0.0, 0.0, 1.0);
+        outputColor = vec4(scrub1(c.r), scrub1(c.g), scrub1(c.b), clamp(c.a, 0.0, 1.0));
+      }`)
+  }
+}
+function useScrubPass() {
+  const camera = useThree((s) => s.camera)
+  return useMemo(() => new EffectPass(camera, new ScrubEffect()), [camera])
+}
 
-/** Light source for the god-ray pass: a sun proxy riding on the sky sphere, lit only near golden hour. */
-function SunProxy({ onMesh }: { onMesh: (m: THREE.Mesh | null) => void }) {
-  useFrame(({ camera }) => {
-    const m = sunMat
+const V = new THREE.Vector3()
+/** Drives the light shafts: sun screen position + strength (golden hour, clear sky, sun in front of the camera). */
+function useSunShafts() {
+  const fx = useMemo(() => new SunShaftsEffect(), [])
+  useFrame(({ camera, size }) => {
     const k = smoothstep(-1, 3, env.sun.elevation) * smoothstep(0.1, 0.5, env.sun.golden) * (1 - smoothstep(0.35, 0.7, env.weather.cover))
-    m.color.setRGB(1, 0.82, 0.58).multiplyScalar(3.2)
-    const mesh = (m.userData.mesh as THREE.Mesh | undefined)
-    if (mesh) { mesh.position.copy(camera.position).addScaledVector(env.sun.dir, 900); mesh.visible = k > 0.03; mesh.scale.setScalar(0.4 + k * 0.6) }
+    V.copy(camera.position).addScaledVector(env.sun.dir, 1000).project(camera)
+    const u = fx.uniforms
+    const ahead = V.z < 1 && Number.isFinite(V.x + V.y)
+    const sx = (V.x + 1) / 2, sy = (V.y + 1) / 2
+    // fade as the sun leaves the frame (no pop at the edge), off when it is behind the camera
+    const onScreen = ahead ? 1 - smoothstep(0.0, 0.35, Math.max(Math.abs(sx - 0.5), Math.abs(sy - 0.5)) - 0.5) : 0
+    ;(u.get('uSun')!.value as THREE.Vector2).set(ahead ? sx : 0.5, ahead ? sy : 0.5)
+    u.get('uStrength')!.value = k * onScreen * 0.55
+    u.get('uAspect')!.value = size.width / Math.max(size.height, 1)
   })
-  return <mesh ref={(r) => { sunMat.userData.mesh = r; onMesh(r) }} material={sunMat} frustumCulled={false} raycast={() => null}><sphereGeometry args={[17, 20, 14]} /></mesh>
+  return fx
 }
 
 export function EffectsA() {
-  const [sun, setSun] = useState<THREE.Mesh | null>(null)
   const full = useWorld((s) => QSPEC[s.quality].post === 'full')
+  const scrub = useScrubPass()
+  const shafts = useSunShafts()
   if (!full) {
     // 低: no god rays / bloom / grain, keep the grade and edge smoothing
     return (
       <EffectComposer multisampling={0} enableNormalPass={false}>
+        <primitive object={scrub} dispose={null} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette offset={0.32} darkness={0.34} />
         <SMAA />
@@ -37,9 +65,9 @@ export function EffectsA() {
   }
   return (
     <>
-      <SunProxy onMesh={(m) => { if (m && m !== sun) setSun(m) }} />
-      <EffectComposer multisampling={0} enableNormalPass={false}>
-        {sun ? <GodRays sun={sun} samples={36} density={0.96} decay={0.955} weight={0.24} exposure={0.18} clampMax={1} blur /> : <></>}
+      <EffectComposer multisampling={0} enableNormalPass={false} ref={(c) => { (window as unknown as { __composer: unknown }).__composer = c }}>
+        <primitive object={scrub} dispose={null} />
+        <primitive object={shafts} dispose={null} />
         <Bloom mipmapBlur luminanceThreshold={0.9} luminanceSmoothing={0.25} intensity={0.45} radius={0.6} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette offset={0.32} darkness={0.34} />

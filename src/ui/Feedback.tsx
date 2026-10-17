@@ -63,7 +63,7 @@ export function Hint() {
   if (seen) return null
   return (
     <div className="hint glass" data-testid="hint">
-      <p><b>这个世界听你的。</b>拖动底部的太阳改变时间，或直接拖动天空中的太阳和云朵；点选物体移动、旋转或删除；左下角可以改天气、添加物体、改变重力。</p>
+      <p><b>这个世界听你的。</b><span className="hint-long">拖动底部的太阳改变时间，或直接拖动天空中的太阳和云朵；点选物体移动、旋转或删除；左下角可以改天气、添加物体、改变重力。</span><span className="hint-short">拖太阳改时间，点物体来编辑，左下角改天气与重力。</span></p>
       <button className="pill primary" onClick={setSeen} data-testid="hint-ok">开始创造</button>
     </div>
   )

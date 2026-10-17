@@ -162,6 +162,16 @@ button { font: inherit; color: inherit; }
 .hint { position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 14px 16px; display: flex; gap: 14px; align-items: center; animation: pop 0.4s var(--ease); }
 .hint p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-soft); }
 .hint b { color: var(--ink); font-family: var(--font-title); font-weight: 700; letter-spacing: 0.06em; }
+.hint-short { display: none; }
+/* narrow screens: one short line + a small button, in a single compact row */
+@media (max-width: 720px) {
+  .hint-long { display: none; }
+  .hint-short { display: inline; }
+  .hint b { display: block; margin-bottom: 2px; }
+  .hint { padding: 10px 12px; gap: 10px; width: min(360px, calc(100vw - 24px)); }
+  .hint p { font-size: 12px; line-height: 1.5; }
+  .hint .pill { padding: 7px 12px; font-size: 12.5px; white-space: nowrap; }
+}
 
 /* ───────── in-world object toolbar ───────── */
 .obj-toolbar { display: flex; align-items: center; gap: 2px; padding: 4px 5px 4px 12px; border-radius: 999px; white-space: nowrap; user-select: none; animation: pop 0.2s var(--ease); background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(20, 30, 54, 0.45)); }
@@ -203,7 +213,7 @@ button { font: inherit; color: inherit; }
   .status-chip { top: calc(62px + env(safe-area-inset-top)); font-size: 12px; }
   .toasts { top: calc(108px + env(safe-area-inset-top)); width: calc(100vw - 24px); }
   .toast { white-space: normal; text-align: center; }
-  .hint { bottom: calc(150px + env(safe-area-inset-bottom)); flex-direction: column; align-items: stretch; }
+  .hint { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .selection-bar { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); justify-content: space-between; padding: 4px 6px 4px 14px; }
   .selection-bar .tb-btn { width: 38px; height: 38px; }
 }

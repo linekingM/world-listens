@@ -52,7 +52,8 @@ export function SkyA() {
         texColor *= mix(vec3(1.0), vec3(1.4, 0.82, 0.52), uGolden * hz * (0.45 + 0.55 * toSun));
         texColor = texColor / (1.0 + max(max(texColor.r, texColor.g), texColor.b) * 0.35);
         // sunset band: a thin coral stripe hugging the horizon, deepest toward the sun, fading to violet away from it
-        float band = exp(-pow(max(direction.y, -0.02) / 0.055, 2.0)) * uGolden * (1.0 - uCover * 0.8);
+        float hy = max(direction.y, -0.02) / 0.055; // squared by hand: pow() of a negative base is NaN on real GPUs
+        float band = exp(-hy * hy) * uGolden * (1.0 - uCover * 0.8);
         vec3 bandCol = mix(vec3(0.62, 0.42, 0.72), vec3(1.0, 0.45, 0.32), 0.35 + 0.65 * pow(max(cosTheta, 0.0), 2.0));
         texColor = mix(texColor, texColor * 0.6 + bandCol * 0.5, band * 0.55);
         // larger, softer cinematic sun disc + halo (the physical one is only ~0.5°)

@@ -28,7 +28,8 @@ async function open(viewport, opts = {}) {
   page.on('pageerror', (e) => page.errors.push('PAGEERROR ' + e.message))
   page.on('console', (m) => { if (m.type() === 'error') page.errors.push(m.text()) })
   await page.goto(BASE + '/' + (opts.query ?? ''))
-  await page.waitForFunction(() => (window.__frames ?? 0) > 20, null, { timeout: 240000 })
+  // SwiftShader: a second WebGL page shares the CPU with the main one, so its first frames can take minutes
+  await page.waitForFunction(() => (window.__frames ?? 0) > 20, null, { timeout: 360000 })
   return { ctx, page }
 }
 const frames = (page, n) => page.evaluate((n) => new Promise((res) => { const f0 = window.__frames; const chk = () => (window.__frames >= f0 + n ? res() : requestAnimationFrame(chk)); chk() }), n)
@@ -432,6 +433,16 @@ await test('combo surprise: starry night + weightless → meteor shower discover
   await frames(page, 20)
   await page.screenshot({ path: `${SHOTS}/T-surprise-meteors.png` })
   await page.evaluate(() => { const s = window.__world.getState(); s.setGravity(1); s.setWeather('clear') })
+})
+
+await test('fireflies: none by day; a clear night with normal gravity (萤火之夜) brings them, day fades them out', async () => {
+  await page.evaluate(() => { const s = window.__world.getState(); s.setTime(12, 'drag'); s.setWeather('clear'); s.setGravity(1) })
+  await frames(page, 10)
+  assert((await page.evaluate(() => window.__fireflies ?? 0)) < 0.01, 'no fireflies by day')
+  await page.evaluate(() => window.__world.getState().setTime(22, 'drag'))
+  await page.waitForFunction(() => window.__surprises.activeSurprises.has('fireflies') && window.__fireflies > 0.3, null, { timeout: 90000 })
+  await page.evaluate(() => window.__world.getState().setTime(12, 'drag'))
+  await page.waitForFunction(() => window.__fireflies < 0.05, null, { timeout: 90000 })
 })
 
 await test('autosave: reload restores the edited world', async () => {
