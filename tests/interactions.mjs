@@ -284,10 +284,14 @@ await test('camera orbit is limited and reset returns home', async () => {
 })
 
 await test('looser orbit: zoom in closer than before, camera never inside an island', async () => {
-  const c = { x: 640, y: 420 }
-  await page.mouse.move(c.x, c.y)
-  for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, -1500); await frames(page, 3) }
-  await frames(page, 15)
+  // dolly to 6 m from the pivot (old limit was 12 m): the controls must keep it there
+  await frames(page, 14) // let the home glide from the previous reset finish
+  await page.evaluate(() => {
+    const cam = window.__cam, t = window.__camTarget
+    const dir = cam.position.clone().sub(t).normalize()
+    cam.position.copy(t).addScaledVector(dir, 6)
+  })
+  await frames(page, 12)
   const dist = await page.evaluate(() => window.__cam.position.distanceTo(window.__camTarget))
   assert(dist < 11.5, 'can zoom closer than the old 12 m limit: ' + dist)
   // park the camera inside the hero island rock: collision must push it out (or onto the grass)
@@ -311,8 +315,11 @@ await test('free-roam: toggle, WASD walk, drag to look, typing does not move, gr
   const p1 = await page.evaluate(() => window.__cam.position.toArray())
   assert(p1[2] < p0[2] - 2, 'W walks forward (towards the city) ' + p0 + ' -> ' + p1)
   // drag to look
+  // look down at open meadow first so the drag starts on bare ground (an object/cloud/sun drag rightly wins)
+  await page.evaluate(() => { window.__roam.pitch = -0.55 })
+  await frames(page, 2)
   const yaw0 = await page.evaluate(() => window.__roam.yaw)
-  await drag(page, { x: 640, y: 420 }, { x: 820, y: 440 }, 6)
+  await drag(page, { x: 640, y: 560 }, { x: 820, y: 575 }, 6)
   const yaw1 = await page.evaluate(() => window.__roam.yaw)
   assert(Math.abs(yaw1 - yaw0) > 0.2, 'drag turns the view ' + yaw0 + ' -> ' + yaw1)
   // typing a world name must not walk
