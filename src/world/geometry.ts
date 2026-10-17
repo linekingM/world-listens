@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { fbm, noise2, rng, smoothstep, clamp } from '../lib/random'
-import { roadX, terrainHeight, ROAD_START, ROAD_END, ROAD_WIDTH, type Building, type IslandSpec } from './layout'
+import { roadX, terrainHeight, ROAD_START, ROAD_END, ROAD_WIDTH, AVENUE_END, GATE_Z, GATE_OPENING, PIAZZA, type Building, type IslandSpec } from './layout'
 
 export interface WorldPalette {
   grassA: string; grassB: string; grassDry: string; grassFar: string
@@ -98,6 +98,9 @@ export function buildTerrain({ lowPoly, palette }: BuildOpts) {
     o.lerp(far, smoothstep(-120, -420, p.z) * 0.55)
     // steep slopes show dirt
     o.lerp(dirt, smoothstep(0.86, 0.6, n.y) * 0.6)
+    // inside the walls the ground is warm stone paving, not meadow
+    const town = smoothstep(ROAD_END - 2, ROAD_END - 14, p.z) * (1 - smoothstep(180, 210, Math.abs(p.x)))
+    if (town > 0) o.lerp(C2.set('#cbb18c').multiplyScalar(0.86 + fbm(p.x * 0.2, p.z * 0.2, 2) * 0.22), town * 0.92)
     // soft darkening right next to the road (worn verge)
     const d = Math.abs(p.x - roadX(Math.max(p.z, ROAD_END - 40)))
     if (p.z > ROAD_END) o.lerp(dirt, (1 - smoothstep(ROAD_WIDTH / 2, ROAD_WIDTH / 2 + 2.5, d)) * 0.35)
@@ -147,7 +150,7 @@ function ribbon(offsetA: number, offsetB: number, zFrom: number, zTo: number, st
 const MOSS = new THREE.Color('#5f7038')
 export function buildRoad({ palette }: BuildOpts) {
   const hw = ROAD_WIDTH / 2
-  const road = ribbon(-hw, hw, ROAD_START, ROAD_END, 1, 0.06)
+  const road = ribbon(-hw, hw, ROAD_START, AVENUE_END, 1, 0.06)
   const asphalt = col(palette.road)
   setColors(road, (p, _n, o) => {
     // mottled flagstone: large soft patches + fine grain, mossy toward the edges
@@ -155,10 +158,10 @@ export function buildRoad({ palette }: BuildOpts) {
     const edge = smoothstep(hw - 1.6, hw, Math.abs(p.x - roadX(p.z)))
     o.copy(asphalt).multiplyScalar(0.84 + v * 0.3).lerp(MOSS, edge * 0.35 + smoothstep(0.62, 0.8, v) * 0.18)
   })
-  const line = ribbon(-0.09, 0.09, ROAD_START, ROAD_END, 1, 0.075, [3.2, 4.2])
+  const line = ribbon(-0.09, 0.09, ROAD_START, AVENUE_END, 1, 0.075, [3.2, 4.2])
   solidColor(line, palette.roadLine)
-  const edgeL = ribbon(-hw + 0.25, -hw + 0.4, ROAD_START, ROAD_END, 1, 0.075)
-  const edgeR = ribbon(hw - 0.4, hw - 0.25, ROAD_START, ROAD_END, 1, 0.075)
+  const edgeL = ribbon(-hw + 0.25, -hw + 0.4, ROAD_START, AVENUE_END, 1, 0.075)
+  const edgeR = ribbon(hw - 0.4, hw - 0.25, ROAD_START, AVENUE_END, 1, 0.075)
   const curbL = ribbon(-hw - 0.9, -hw, ROAD_START, ROAD_END, 1, 0.12)
   const curbR = ribbon(hw, hw + 0.9, ROAD_START, ROAD_END, 1, 0.12)
   for (const g of [edgeL, edgeR]) solidColor(g, palette.roadLine)
@@ -598,6 +601,53 @@ export function buildCity(list: Building[], { lowPoly }: BuildOpts) {
       const lan = new THREE.CylinderGeometry(1.3, 1.5, 3.2, 10); lan.translate(bd.x, yD + 7 + r0 * 1.25 + 1.2, bd.z); push(lan, CREAM)
       capCone(bd.x, yD + 7 + r0 * 1.25 + 2.8, bd.z, 1.4, 3.6, COPPER, 10)
     }
+  }
+  // city gate: a stucco wall with an arched passage between two towers, turned to the road's heading
+  {
+    const W = GATE_OPENING, ys = 4.6, H = ys + W / 2 + 3.2, X = W / 2 + 3.2, D = 4.6, T = 5.6, TH = H + 5.5
+    const gx = roadX(GATE_Z), gy = Math.max(terrainHeight(gx, GATE_Z), 0) - 0.2
+    const parts0 = parts.length
+    const wallC = col('#e6cfa6'), towerC = col('#dcbf98')
+    const sh = new THREE.Shape()
+    sh.moveTo(-X, 0); sh.lineTo(-W / 2, 0); sh.lineTo(-W / 2, ys)
+    sh.absarc(0, ys, W / 2, Math.PI, 0, true)
+    sh.lineTo(W / 2, 0); sh.lineTo(X, 0); sh.lineTo(X, H); sh.lineTo(-X, H); sh.closePath()
+    const wall = new THREE.ExtrudeGeometry(sh, { depth: D, bevelEnabled: false, curveSegments: lowPoly ? 8 : 18 })
+    wall.translate(0, 0, -D / 2)
+    // soffit and passage walls a shade darker, a warm band of voussoirs around the arch on both faces
+    push(wall, wallC, (p, n, o) => {
+      const inArch = Math.abs(p.x) <= W / 2 + 0.01 && p.y <= ys + W / 2 + 0.01 && Math.abs(n.z) < 0.5
+      if (inArch) o.multiplyScalar(0.72)
+      else if (Math.abs(n.z) > 0.5) { const r = Math.hypot(p.x, Math.max(p.y - ys, 0)); if (r < W / 2 + 0.9 && p.y > ys - 0.01) o.lerp(col('#c98f62'), 0.55) }
+      o.multiplyScalar(0.9 + noise2(p.x * 0.6, p.y * 0.6) * 0.14)
+    })
+    // cornice + crenellations along the wall top
+    push(box(2 * X + 0.6, 0.6, D + 0.6, 0, H, 0), CREAM)
+    for (let x = -X + 0.8; x <= X - 0.8; x += 1.9) push(box(1.0, 1.0, D * 0.9, x, H + 0.6, 0), wallC.clone().multiplyScalar(0.94))
+    for (const sx of [-1, 1]) {
+      const tx = sx * (X + T / 2 - 0.6)
+      push(box(T, TH, T, tx, 0, 0), towerC, (p, _n, o) => o.multiplyScalar(0.8 + clamp(p.y / TH) * 0.22 + noise2(p.x * 0.5, p.y * 0.5) * 0.1))
+      push(box(T + 0.7, 0.7, T + 0.7, tx, TH, 0), CREAM)
+      push(box(T + 0.5, 0.4, T + 0.5, tx, TH * 0.55, 0), CREAM)
+      // small dark slit windows facing the road
+      for (const wy of [TH * 0.35, TH * 0.72]) push(box(0.55, 1.6, 0.1, tx, wy, T / 2 + 0.02), '#4a3a34')
+      hipRoof(tx, TH + 0.7, 0, T + 0.9, T + 0.9, '#b8553a', 0.9)
+    }
+    const heading = Math.atan2(-(roadX(GATE_Z - 1) - roadX(GATE_Z + 1)), 2)
+    const m = new THREE.Matrix4().makeRotationY(heading).setPosition(gx, gy, GATE_Z)
+    for (let i = parts0; i < parts.length; i++) parts[i].applyMatrix4(m)
+  }
+  // piazza: paved disc, round basin, water, a slim column with a bowl that spills
+  {
+    const { x, z, r } = PIAZZA, y = Math.max(terrainHeight(x, z), 0)
+    const pave = new THREE.CylinderGeometry(r, r, 0.14, 40); pave.translate(x, y + 0.02, z)
+    push(pave, '#d8c09a', (p, _n, o) => { const k = Math.hypot(p.x - x, p.z - z); if (Math.abs(k - r * 0.62) < 0.35 || k > r - 0.6) o.set('#b89c78') })
+    const rim = new THREE.CylinderGeometry(4.2, 4.4, 0.9, 32); rim.translate(x, y + 0.45, z); push(rim, CREAM)
+    const water = new THREE.CylinderGeometry(3.85, 3.85, 0.1, 32); water.translate(x, y + 0.78, z); push(water, WATER)
+    const col0 = new THREE.CylinderGeometry(0.42, 0.55, 3.2, 12); col0.translate(x, y + 2.2, z); push(col0, CREAM)
+    const bowl = new THREE.CylinderGeometry(1.5, 0.5, 0.6, 20); bowl.translate(x, y + 3.9, z); push(bowl, CREAM)
+    const spill = new THREE.CylinderGeometry(1.3, 1.6, 0.06, 20); spill.translate(x, y + 4.15, z); push(spill, WATER)
+    const tip = new THREE.SphereGeometry(0.35, 10, 6); tip.translate(x, y + 4.6, z); push(tip, '#c7a46a')
   }
   // the one surreal touch: a broken stone aqueduct drifting above the rooftops, still carrying water
   {

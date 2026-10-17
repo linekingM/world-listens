@@ -8,6 +8,12 @@ import { fbm, rng, smoothstep } from '../lib/random'
 export const ROAD_START = 40
 export const ROAD_END = -300
 export const ROAD_WIDTH = 7.2
+/** the city gate stands where the meadow road meets the city; the flagstone avenue carries on through it */
+export const GATE_Z = ROAD_END - 4
+export const AVENUE_END = ROAD_END - 46
+export const GATE_OPENING = ROAD_WIDTH + 2.4
+/** a piazza with a fountain where the avenue ends */
+export const PIAZZA = { x: roadX(AVENUE_END - 8), z: AVENUE_END - 8, r: 15 }
 
 export function roadX(z: number) {
   return 7.5 * Math.sin(z * 0.0105 + 0.25) - 1.86 + 3.0 * Math.sin(z * 0.004)
@@ -83,6 +89,15 @@ export function cityBuildings(): Building[] {
       const kind: Building['kind'] = h > 30 && roll < 0.16 ? 1 : roll < 0.5 ? 3 : roll < 0.6 && h > 16 ? 4 : roll < 0.66 ? 2 : 0
       out.push({ x: x + r() * 3, z, w: 6 + r() * 6, d: 6 + r() * 6, h, tone: r(), kind })
     }
+  }
+  // the avenue continues through the gate: keep its corridor and the gate plot clear (post-filter keeps the rng sequence)
+  const gx = roadX(GATE_Z)
+  for (let i = out.length - 1; i >= 0; i--) {
+    const b = out[i]
+    const avenue = b.z + b.d / 2 > AVENUE_END && Math.abs(b.x - roadX(Math.max(b.z, AVENUE_END))) < b.w / 2 + ROAD_WIDTH / 2 + 3
+    const gate = b.z + b.d / 2 > GATE_Z - 9 && Math.abs(b.x - gx) < b.w / 2 + GATE_OPENING / 2 + 9
+    const piazza = Math.hypot(b.x - PIAZZA.x, b.z - PIAZZA.z) < PIAZZA.r + Math.max(b.w, b.d) / 2
+    if (avenue || gate || piazza) out.splice(i, 1)
   }
   // landmarks: an elegant campanile on the avenue axis, a domed cathedral, a clock tower, two slender towers
   out.push({ x: cx + 26, z: -385, w: 8.5, d: 8.5, h: 88, tone: 0.42, kind: 5 })
