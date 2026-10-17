@@ -110,7 +110,7 @@ export function CloudsA() {
   })
   return (
     <group ref={group}>
-      <Clouds texture="/tex/cloud.png" material={THREE.MeshLambertMaterial} limit={1800} frustumCulled={false}>
+      <Clouds texture={`${import.meta.env.BASE_URL}tex/cloud.png`} material={THREE.MeshLambertMaterial} limit={1800} frustumCulled={false}>
         {horizon.map((c, i) => (
           <Cloud key={'h' + i} seed={c.seed + 1} position={c.pos} bounds={[46 * c.scale, 7 * c.scale, 14 * c.scale]} segments={Math.round(30 + c.scale * 10)} volume={26 * c.scale} smallestVolume={0.4} concentrate="inside" growth={3} speed={0.06} fade={10} opacity={0.8} color="#ffffff" />
         ))}

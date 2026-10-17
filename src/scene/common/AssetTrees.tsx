@@ -11,7 +11,7 @@ import { addLeafGlow, addWind , addCanopyNormals } from './materialFx'
  */
 export const BROADLEAF = ['CommonTree_1', 'CommonTree_2', 'CommonTree_3', 'CommonTree_4', 'CommonTree_5']
 export const PINES = ['Pine_1', 'Pine_2', 'Pine_3', 'Pine_4', 'Pine_5']
-const url = (n: string) => `/models/${n}.glb`
+const url = (n: string) => `${import.meta.env.BASE_URL}models/${n}.glb`
 // (Bush_Common_Flowers is dropped: its big flower cards turn the whole shrub into a saturated red blob at this scale)
 export const FLORA = ['Bush_Common', 'Flower_3_Group', 'Flower_4_Group']
 /** false with ?assets=0: everything falls back to the procedural trees */
