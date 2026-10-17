@@ -24,6 +24,7 @@ export function occludedByGround(r: THREE.Ray, dist: number) {
 export function beginDrag(e: ThreeEvent<PointerEvent>, kind: DragKind, id: string, rest: Vec3, planeY?: number) {
   e.stopPropagation()
   interaction.pressConsumed = true
+  if (interaction.drag && interaction.drag.pointerId !== e.nativeEvent.pointerId) return
   const grab = new THREE.Vector3()
   if (kind !== 'sun') {
     const h = planeY !== undefined ? rayPlaneY(e.ray, planeY, hit) : rayGround(e.ray, hit)
@@ -76,6 +77,7 @@ export function InteractionController() {
       const st = useWorld.getState()
       const d = interaction.drag
       if (d) {
+        if (e.pointerId !== d.pointerId) return
         if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 4) return
         d.moved = true
         const r = setRay(e.clientX, e.clientY)
@@ -112,7 +114,9 @@ export function InteractionController() {
       const st = useWorld.getState()
       const d = interaction.drag
       if (d) {
+        if (e.pointerId !== d.pointerId) return
         interaction.drag = null
+        downOnCanvas = false
         if (controlsRef) controlsRef.enabled = true
         st.setDragging(false)
         return

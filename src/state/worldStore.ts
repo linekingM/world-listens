@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { CloudObject, ObjType, Panel, Vec3, WeatherId, WorldDoc, WorldObject } from './types'
 import { defaultWorld } from './defaultWorld'
+import { sims } from '../scene/systems/simulation'
 
 export type StyleId = 'a' | 'b' | 'c'
 export type { ObjType, WeatherId, WorldDoc, WorldObject, CloudObject, Panel, Vec3 }
@@ -65,9 +66,13 @@ export type WorldState = WorldDoc & UIState & Actions
 let uid = 0
 const newId = (p: string) => `${p}-${Date.now().toString(36)}${(uid++).toString(36)}`
 let toastId = 0
+const wrap24 = (t: number) => ((t % 24) + 24) % 24
+/** bumped on load/reset so a pending 撤销 can never reinsert into a different world */
+let epoch = 0
+const OBJECT_CAP = 400
 
 const base = defaultWorld()
-if (tParam !== null && Number.isFinite(Number(tParam))) base.time = Number(tParam)
+if (tParam !== null && Number.isFinite(Number(tParam))) base.time = wrap24(Number(tParam))
 
 export const useWorld = create<WorldState>((set, get) => ({
   ...base,
@@ -81,10 +86,10 @@ export const useWorld = create<WorldState>((set, get) => ({
   cameraResetTick: 0,
   camMode: 'orbit',
   toasts: [],
-  hintSeen: localStorage.getItem('world-listens.hint') === '1',
+  hintSeen: (() => { try { return localStorage.getItem('world-listens.hint') === '1' } catch { return false } })(),
 
   setStyle: (style) => set({ style }),
-  setTime: (time, ease = 'drag') => set({ time: ((time % 24) + 24) % 24, timeEase: ease }),
+  setTime: (time, ease = 'drag') => { if (Number.isFinite(time)) set({ time: wrap24(time), timeEase: ease }) },
   setWeather: (weather) => {
     const t = get().time
     if (weather === 'sunset') set({ weather, time: 18.6, timeEase: 'slow' })
@@ -95,6 +100,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   setName: (name) => set({ name: name.slice(0, 40) }),
 
   addObject: (type, pos, extra) => {
+    if (get().objects.length >= OBJECT_CAP) { get().toast('场景物件已达上限（400）', 'info'); return '' }
     const id = newId(type)
     const obj: WorldObject = { id, type, pos, rotY: Math.random() * Math.PI * 2, scale: 1, variant: Math.floor(Math.random() * 3), ...extra }
     set((s) => ({ objects: [...s.objects, obj], selectedId: id }))
@@ -108,6 +114,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   cloudToIsland: (id) => {
     const c = get().clouds.find((x) => x.id === id)
     if (!c) return null
+    if (get().objects.length >= OBJECT_CAP) { get().toast('场景物件已达上限（400）', 'info'); return null }
     const islandId = newId('island')
     const obj: WorldObject = { id: islandId, type: 'island', pos: [c.pos[0], Math.max(18, c.pos[1] * 0.75), c.pos[2]], rotY: Math.random() * 6.28, scale: 0.7 + c.scale * 0.25, variant: 3 + (c.seed % 3) }
     set((s) => ({ clouds: s.clouds.filter((x) => x.id !== id), objects: [...s.objects, obj], selectedId: islandId }))
@@ -125,8 +132,9 @@ export const useWorld = create<WorldState>((set, get) => ({
   requestCameraReset: () => set((s) => ({ cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
   setCamMode: (camMode) => set({ camMode, panel: null, placing: null }),
 
-  loadDoc: (doc) => set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
-  resetWorld: () => set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
+  // a new world: drop per-object sim offsets (ids like bench-0 are reused) and stale 撤销 toasts
+  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
   getDoc: () => {
     const s = get()
     return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds }
@@ -141,12 +149,20 @@ export const useWorld = create<WorldState>((set, get) => ({
     const idx = s.objects.findIndex((o) => o.id === id)
     if (idx < 0) return
     const obj = s.objects[idx]
+    const gen = epoch
     s.removeObject(id)
     const label = ({ tree: '树木', pine: '松树', rock: '岩石', house: '小屋', tower: '塔楼', bench: '长椅', lamp: '路灯', island: '浮岛' } as const)[obj.type]
-    get().toast(`已删除${label}`, 'info', { label: '撤销', run: () => set((st) => ({ objects: [...st.objects.slice(0, idx), obj, ...st.objects.slice(idx)], selectedId: obj.id })) })
+    get().toast(`已删除${label}`, 'info', { label: '撤销', run: () => {
+      if (gen !== epoch) return
+      set((st) => {
+        if (st.objects.some((o) => o.id === obj.id)) return {}
+        const at = Math.min(idx, st.objects.length)
+        return { objects: [...st.objects.slice(0, at), obj, ...st.objects.slice(at)], selectedId: obj.id }
+      })
+    } })
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-  setHintSeen: () => { localStorage.setItem('world-listens.hint', '1'); set({ hintSeen: true }) },
+  setHintSeen: () => { try { localStorage.setItem('world-listens.hint', '1') } catch { /* private mode / quota */ } set({ hintSeen: true }) },
 }))
 
 // test/debug hook (harmless in production: read-only access to the store API)

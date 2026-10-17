@@ -17,7 +17,14 @@ export const SURPRISES: Surprise[] = [
 ]
 
 const KEY = 'world-listens.surprises'
-const found = new Set<string>((() => { try { return JSON.parse(localStorage.getItem(KEY) || '[]') as string[] } catch { return [] } })())
+function loadFound(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter((x): x is string => typeof x === 'string')
+  } catch { return [] }
+}
+const found = new Set<string>(loadFound())
 /** currently active combo ids (read each frame by effects) */
 export const activeSurprises = new Set<string>()
 
@@ -35,7 +42,7 @@ export function startSurprises() {
       if (on) activeSurprises.add(sp.id); else activeSurprises.delete(sp.id)
       if (on && !found.has(sp.id)) {
         found.add(sp.id)
-        localStorage.setItem(KEY, JSON.stringify([...found]))
+        try { localStorage.setItem(KEY, JSON.stringify([...found])) } catch { /* quota / private mode */ }
         s.toast(`✦ 发现彩蛋「${sp.name}」· ${sp.text}（${found.size}/${SURPRISES.length}）`, 'ok')
       }
     }

@@ -92,6 +92,14 @@ export function useAppEffects() {
       clearTimeout(timer)
       timer = window.setTimeout(() => writeAutosave(useWorld.getState().getDoc()), 800)
     })
+    // last stays '' until this session edits, so a close without edits does not
+    // overwrite a stored autosave with the document we just restored.
+    const flush = () => {
+      if (!last) return
+      clearTimeout(timer)
+      writeAutosave(useWorld.getState().getDoc())
+    }
+    window.addEventListener('pagehide', flush)
     startSurprises()
     if (m) {
       decodeShare(m[1]).then((doc) => {
@@ -100,7 +108,7 @@ export function useAppEffects() {
         useWorld.getState().setHintSeen()
       }).catch(() => useWorld.getState().toast('分享链接无法解析，已打开默认世界', 'error'))
     }
-    return () => { unsub(); clearTimeout(timer) }
+    return () => { unsub(); clearTimeout(timer); window.removeEventListener('pagehide', flush) }
   }, [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -118,7 +126,7 @@ export function useAppEffects() {
       if (!obj) return
       if (e.key === 'Delete' || e.key === 'Backspace') { st.deleteWithUndo(obj.id); sims.delete(obj.id); e.preventDefault() }
       else if (e.key === 'r' || e.key === 'R') st.updateObject(obj.id, { rotY: obj.rotY + (e.shiftKey ? 1 : -1) * Math.PI / 12 })
-      else if (e.key === 'f' || e.key === 'F') { if (obj.type !== 'island') st.toggleFloat(obj.id) }
+      else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) { if (obj.type !== 'island') st.toggleFloat(obj.id) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

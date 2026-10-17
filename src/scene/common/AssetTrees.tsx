@@ -50,9 +50,13 @@ function treeMaterial(src: THREE.MeshStandardMaterial) {
 
 interface Part { geo: THREE.BufferGeometry; mat: THREE.Material; leaves: boolean }
 export type AssetModel = ReturnType<typeof useAssetModel>
+// processed once per gltf and shared by every user (editable trees come and go: no per-instance clones to leak)
+const modelCache = new WeakMap<object, { parts: Part[]; height: number; minY: number }>()
 export function useAssetModel(name: string) {
   const gltf = useGLTF(url(name))
   return useMemo(() => {
+    const hit = modelCache.get(gltf)
+    if (hit) return hit
     const parts: Part[] = []
     gltf.scene.updateMatrixWorld(true)
     gltf.scene.traverse((o) => {
@@ -87,7 +91,9 @@ export function useAssetModel(name: string) {
     })
     const box = new THREE.Box3()
     for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox!) }
-    return { parts, height: box.max.y - box.min.y, minY: box.min.y }
+    const out = { parts, height: box.max.y - box.min.y, minY: box.min.y }
+    modelCache.set(gltf, out)
+    return out
   }, [gltf])
 }
 
@@ -187,19 +193,30 @@ export function AssetTrees({ spots }: { spots: TreeSpot[] }) {
   return <>{groups.map((g) => <ModelInstances key={g.name} name={g.name} spots={g.spots} targetH={g.h} pine={g.pine} />)}</>
 }
 
+// tinted leaf materials for single trees, shared per (material, pine, tint): bounded set, never freed or leaked
+const tintCache = new Map<string, THREE.Material>()
+function tintedLeaf(src: THREE.Material, tint: number, pine?: boolean) {
+  const t = Math.round(tint * 100) / 100, key = `${src.uuid}|${pine ? 1 : 0}|${t}`
+  let m = tintCache.get(key)
+  if (!m) {
+    const c = (src as THREE.MeshStandardMaterial).clone()
+    c.onBeforeCompile = src.onBeforeCompile
+    c.customProgramCacheKey = src.customProgramCacheKey
+    if (pine) c.color.copy(PINE)
+    else c.color.copy(LEAF_A).lerp(LEAF_B, t)
+    tintCache.set(key, (m = c))
+  }
+  return m
+}
+
 /** A single (non-instanced) asset tree for editable objects and island groves; base at y=0, height = targetH. */
 export function AssetTreeVisual({ name, targetH, override, shadows = true, tint = 0.5, pine }: { name: string; targetH: number; override?: THREE.Material; shadows?: boolean; tint?: number; pine?: boolean }) {
   const model = useAssetModel(name)
   const k = targetH / model.height
-  // per-object colour comes from cloned materials sharing the cached shader program
+  // per-object leaf colour from cached tinted materials sharing the shader program; bark uses the shared material
   const mats = useMemo(() => model.parts.map((p) => {
     if (override) return override
-    const m = (p.mat as THREE.MeshStandardMaterial).clone()
-    m.onBeforeCompile = p.mat.onBeforeCompile
-    m.customProgramCacheKey = p.mat.customProgramCacheKey
-    if (p.leaves && pine) m.color.copy(PINE)
-    else if (p.leaves) m.color.copy(LEAF_A).lerp(LEAF_B, tint)
-    return m
+    return p.leaves ? tintedLeaf(p.mat, tint, pine) : p.mat
   }), [model, override, tint, pine])
   return (
     <group scale={k} position-y={-model.minY * k - 0.1}>

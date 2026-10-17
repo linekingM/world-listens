@@ -63,10 +63,11 @@ export function SunDial() {
         aria-valuenow={Math.round(time * 100) / 100}
         aria-valuetext={timeLabel(time)}
         tabIndex={0}
-        onPointerDown={(e) => { drag.current = true; (e.target as Element).setPointerCapture?.(e.pointerId); fromEvent(e) }}
+        onPointerDown={(e) => { drag.current = true; svg.current?.setPointerCapture(e.pointerId); fromEvent(e) }}
         onPointerMove={(e) => drag.current && fromEvent(e)}
         onPointerUp={() => { drag.current = false }}
         onPointerCancel={() => { drag.current = false }}
+        onLostPointerCapture={() => { drag.current = false }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setTime(time - 0.25, 'drag'); e.preventDefault() }
           if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setTime(time + 0.25, 'drag'); e.preventDefault() }

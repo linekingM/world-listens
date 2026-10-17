@@ -1,4 +1,4 @@
-import { memo, Suspense, useMemo, useRef } from 'react'
+import { memo, Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
@@ -170,6 +170,7 @@ const EditableObject = memo(function EditableObject({ obj, selected }: { obj: Wo
   const kind = OBJECT_KINDS[obj.type]
   const radius = objectRadius(obj.type, obj.variant, obj.scale)
   const blobMat = useMemo(() => new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, color: '#1d2a3a', opacity: 0.4, polygonOffset: true, polygonOffsetFactor: -2 }), [])
+  useEffect(() => () => blobMat.dispose(), [blobMat])
   const objRef = useRef(obj)
   objRef.current = obj
 

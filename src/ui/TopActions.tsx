@@ -135,11 +135,24 @@ function SharePanel() {
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     let alive = true
-    encodeShare(useWorld.getState().getDoc()).then((code) => {
-      if (!alive) return
-      setLink(`${location.origin}${location.pathname}#w=${code}`)
+    let seq = 0
+    let timer = 0
+    const schedule = () => {
+      const ticket = ++seq
+      clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        encodeShare(useWorld.getState().getDoc()).then((code) => {
+          if (!alive || ticket !== seq) return
+          setLink(`${location.origin}${location.pathname}#w=${code}`)
+        }).catch(() => {})
+      }, 200)
+    }
+    const unsub = useWorld.subscribe((s, prev) => {
+      if (s.name === prev.name && s.time === prev.time && s.weather === prev.weather && s.gravity === prev.gravity && s.orbit === prev.orbit && s.objects === prev.objects && s.clouds === prev.clouds) return
+      schedule()
     })
-    return () => { alive = false }
+    schedule()
+    return () => { alive = false; unsub(); clearTimeout(timer) }
   }, [])
   const copy = async () => {
     try {
