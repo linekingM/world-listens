@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWorld } from '../state/worldStore'
 import { roam } from '../scene/common/FreeRoam'
 import { useIsCompact } from './SelectionActions'
@@ -47,21 +47,55 @@ function HoldBtn({ dir, label }: { dir: 1 | -1; label: string }) {
   )
 }
 
-/** Free-roam overlay: controls hint, exit, pointer-lock option; joystick + up/down on phones. */
+const moving = () =>
+  roam.keys.size > 0
+  || Math.hypot(roam.input.joyX, roam.input.joyY) > 0.08
+  || roam.input.up !== 0
+  || Math.abs(roam.gesture.fwd) > 0.02
+  || Math.abs(roam.gesture.rise) > 0.02
+  || !!roam.glide
+
+/** Free-roam overlay: compact chip by default; tap to expand the gesture hint. Joystick + up/down on phones. */
 export function RoamHud() {
   const roaming = useWorld((s) => s.camMode === 'roam')
   const setCamMode = useWorld((s) => s.setCamMode)
   const compact = useIsCompact()
+  const [open, setOpen] = useState(false)
+
+  // collapsed by default whenever roam starts
+  useEffect(() => { if (roaming) setOpen(false) }, [roaming])
+
+  // auto-collapse a few seconds after expand, or as soon as the player moves
+  useEffect(() => {
+    if (!roaming || !open) return
+    const t = window.setTimeout(() => setOpen(false), 4500)
+    const id = window.setInterval(() => { if (moving()) setOpen(false) }, 180)
+    return () => { clearTimeout(t); clearInterval(id) }
+  }, [roaming, open])
+
   if (!roaming) return null
   const lock = () => (document.querySelector('.stage canvas') as HTMLCanvasElement | null)?.requestPointerLock?.()
   return (
     <>
-      <div className="roam-hint glass" data-testid="roam-hud">
-        <span className="roam-title">自由漫游</span>
-        <span className="roam-keys">
-          {compact ? '摇杆行走 · 单指环顾 · 双指捏合进退 · 双指上下推升降 · 双击飞往' : <><kbd>WASD</kbd> 行走 · 拖动环顾 · <kbd>空格</kbd>/<kbd>E</kbd> 上升 · <kbd>Q</kbd> 下降 · <kbd>Shift</kbd> 加速</>}
-        </span>
-        {!compact && <button className="pill small" onClick={lock} data-testid="roam-lock">锁定鼠标</button>}
+      <div className={`roam-hint glass${open ? ' is-open' : ' is-collapsed'}`} data-testid="roam-hud">
+        <button
+          type="button"
+          className="roam-title"
+          aria-expanded={open}
+          aria-label={open ? '收起操作提示' : '展开操作提示'}
+          data-testid="roam-hint-toggle"
+          onClick={() => setOpen((v) => !v)}
+        >
+          自由漫游{!open && <span className="roam-more" aria-hidden> · ?</span>}
+        </button>
+        {open && (
+          <span className="roam-keys" data-testid="roam-keys">
+            {compact
+              ? '摇杆行走 · 单指环顾 · 双指捏合进退 · 双指上下推升降 · 双击飞往'
+              : <><kbd>WASD</kbd> 行走 · 拖动环顾 · <kbd>空格</kbd>/<kbd>E</kbd> 上升 · <kbd>Q</kbd> 下降 · <kbd>Shift</kbd> 加速</>}
+          </span>
+        )}
+        {!compact && open && <button className="pill small" onClick={lock} data-testid="roam-lock">锁定鼠标</button>}
         <button className="pill small" onClick={() => setCamMode('orbit')} data-testid="roam-exit"><Icon name="close" size={14} /> {compact ? '返回' : '返回 Esc'}</button>
       </div>
       {compact && (

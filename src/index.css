@@ -244,7 +244,10 @@ button { font: inherit; color: inherit; }
 
 /* ───────── free-roam (explore) mode ───────── */
 .roam-hint { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-radius: 999px; font-size: 12.5px; color: rgba(255,255,255,0.92); pointer-events: auto; animation: pop 0.25s var(--ease); white-space: nowrap; }
-.roam-title { font-weight: 600; letter-spacing: 0.08em; }
+.roam-hint.is-collapsed { gap: 8px; padding: 6px 8px 6px 14px; }
+.roam-title { font: inherit; font-weight: 600; letter-spacing: 0.08em; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.roam-title:hover { opacity: 0.9; }
+.roam-more { opacity: 0.55; font-weight: 500; letter-spacing: 0; }
 .roam-keys { opacity: 0.85; }
 .roam-hint kbd { font: inherit; font-size: 11px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); }
 .pill.small { padding: 5px 11px; font-size: 12px; min-height: 0; }
@@ -253,7 +256,8 @@ button { font: inherit; color: inherit; }
 .roam-updown { position: fixed; right: 20px; bottom: calc(124px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
 .roam-btn { width: 54px; height: 54px; border-radius: 50%; font-size: 22px; color: #fff; touch-action: none; }
 @media (max-width: 720px) {
-  .roam-hint { top: 64px; left: 12px; right: 12px; transform: none; border-radius: 16px; white-space: normal; font-size: 12px; gap: 8px; padding: 8px 8px 8px 14px; }
+  .roam-hint.is-collapsed { top: 58px; left: 50%; right: auto; transform: translateX(-50%); width: auto; max-width: calc(100vw - 24px); border-radius: 999px; white-space: nowrap; font-size: 12px; gap: 8px; padding: 6px 8px 6px 14px; }
+  .roam-hint.is-open { top: 58px; left: 12px; right: 12px; transform: none; border-radius: 16px; white-space: normal; font-size: 12px; gap: 8px; padding: 8px 8px 8px 14px; }
   .roam-hint .roam-title { flex: none; }
   .roam-hint .roam-keys { flex: 1; min-width: 0; white-space: normal; font-size: 11px; line-height: 1.4; padding-left: 8px; border-left: 1px solid rgba(255,255,255,0.18); }
   .roam-hint .pill { flex: none; }

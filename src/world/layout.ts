@@ -162,22 +162,32 @@ const keepSunsetWindow = (c: CloudSpec) => {
   return Math.abs(az - SUNSET_VIEW_AZ) > 10 || c.pos[1] > 115
 }
 
-/** Static far cloud banks + a low "sea of clouds" around the mountain feet (scenery, driven by weather). */
-export function horizonClouds(): CloudSpec[] {
-  const r = rng(99)
+/** Far cloud banks; `day` re-seeds layout/shape/density so each calendar day looks different. */
+export function horizonClouds(day = 0): CloudSpec[] {
+  const r = rng(99 + day * 7919)
   const out: CloudSpec[] = []
-  for (let i = 0; i < 9; i++) {
-    const x = -420 + i * 105 + r() * 40
-    out.push({ pos: [x, 60 + r() * 35, -640 - r() * 120], scale: 2.2 + r() * 1.2, seed: i })
+  const n = 7 + Math.floor(r() * 6) // 7..12
+  for (let i = 0; i < n; i++) {
+    const x = -460 + i * (900 / Math.max(n - 1, 1)) + (r() - 0.5) * 70
+    const y = 48 + r() * 50 + (r() < 0.25 ? 25 : 0)
+    const z = -600 - r() * 160 - (r() < 0.3 ? 80 : 0)
+    out.push({ pos: [x, y, z], scale: 1.6 + r() * 1.8, seed: day * 100 + i + Math.floor(r() * 50) })
   }
   return out.filter(keepSunsetWindow)
 }
 
-/** Low, flat cloud sea lying in the far valleys beyond the city. */
-export function cloudSea(): CloudSpec[] {
-  const r = rng(321)
+/** Low cloud sea; density and placement vary by day. */
+export function cloudSea(day = 0): CloudSpec[] {
+  const r = rng(321 + day * 6571)
   const out: CloudSpec[] = []
-  for (let i = 0; i < 12; i++) out.push({ pos: [-650 + i * 120 + r() * 50, 10 + r() * 8, -560 - r() * 260], scale: 2.4 + r() * 1.0, seed: 60 + i })
+  const n = 8 + Math.floor(r() * 8) // 8..15
+  for (let i = 0; i < n; i++) {
+    out.push({
+      pos: [-700 + i * (1400 / Math.max(n - 1, 1)) + (r() - 0.5) * 80, 6 + r() * 14, -520 - r() * 300],
+      scale: 1.8 + r() * 1.6,
+      seed: 60 + day * 100 + i,
+    })
+  }
   return out
 }
 
@@ -191,8 +201,8 @@ export function heroClouds(): CloudSpec[] {
 }
 
 /** Legacy: all clouds (used by the B/C prototype styles). */
-export function cloudSpecs(): CloudSpec[] {
-  return [...horizonClouds(), ...heroClouds()]
+export function cloudSpecs(day = 0): CloudSpec[] {
+  return [...horizonClouds(day), ...heroClouds()]
 }
 
 /** Street lamps along the road (they glow at night). */

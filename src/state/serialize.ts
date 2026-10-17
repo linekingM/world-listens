@@ -59,6 +59,7 @@ export function parseWorld(raw: unknown): WorldDoc {
     objects,
     clouds,
     play: parsePlay(r.play),
+    day: Math.max(0, Math.floor(num(r.day, 0, 0, 1e7))),
   }
 }
 

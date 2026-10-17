@@ -26,5 +26,6 @@ export function defaultWorld(): WorldDoc {
     orbit: false,
     objects,
     clouds: heroClouds().map((c, i) => ({ id: `cloud-${i}`, pos: [...c.pos], scale: c.scale, seed: c.seed })),
+    day: 0,
   }
 }

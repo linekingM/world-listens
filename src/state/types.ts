@@ -36,6 +36,8 @@ export interface WorldDoc {
   clouds: CloudObject[]
   /** auto time-of-day playback: on/off and game minutes per real second */
   play?: { on: boolean; rate: number }
+  /** calendar day index for cloud layout; advances when time crosses midnight */
+  day?: number
 }
 
 export type Panel = 'weather' | 'add' | 'gravity' | 'camera' | 'save' | 'share' | null

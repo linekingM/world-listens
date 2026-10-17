@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useEnv } from './EnvContext'
+import { useWorld } from '../../state/worldStore'
 import { cloudSpecs } from '../../world/layout'
 import { noise2, rng } from '../../lib/random'
 
@@ -67,10 +68,11 @@ const MOON_UP = new THREE.Vector3(0.2, 1, 0.3).normalize()
 
 export function PuffyClouds(opts: PuffyOptions & { scale?: number; opacity?: number }) {
   const env = useEnv()
-  const specs = useMemo(() => cloudSpecs(), [])
+  const day = useWorld((st) => st.day ?? 0)
+  const specs = useMemo(() => cloudSpecs(day), [day])
   const group = useRef<THREE.Group>(null!)
   const { detail, flat, steps, rim, shadowTint, lumps } = opts
-  const geos = useMemo(() => specs.map((s) => buildPuffyCloud(s.seed, { detail, flat, steps, rim, shadowTint, lumps })), [specs, detail, flat, steps, rim, shadowTint, lumps])
+  const geos = useMemo(() => specs.map((sp) => buildPuffyCloud(sp.seed, { detail, flat, steps, rim, shadowTint, lumps })), [specs, detail, flat, steps, rim, shadowTint, lumps])
   const mat = useMemo(() => new THREE.ShaderMaterial({
     fog: true,
     transparent: (opts.opacity ?? 1) < 1,
@@ -111,14 +113,18 @@ export function PuffyClouds(opts: PuffyOptions & { scale?: number; opacity?: num
       }`,
   }), [steps, rim, opts.opacity])
   const shade = useMemo(() => new THREE.Color(shadowTint), [shadowTint])
-  useFrame((s, dt) => {
+  useFrame((_, dt) => {
     const u = mat.uniforms, L = env.light
     u.uSun.value.copy(env.sun.elevation > -3 ? env.sun.dir : MOON_UP)
     // lit side: white warmed by the sun; shadow side: sky colour pushed towards the style's shadow tint
     u.uLit.value.copy(WHITE).lerp(L.sun, 0.25 + env.sun.golden * 0.45).multiplyScalar(0.25 + env.sun.day * 0.85)
     u.uShade.value.copy(L.hemiSky).lerp(shade, 0.45).lerp(L.fog, env.sun.golden * 0.35).multiplyScalar(0.3 + env.sun.day * 0.6)
     u.uRimCol.value.copy(TMP.copy(L.sun).lerp(WHITE, 0.4)).multiplyScalar(env.sun.day)
-    group.current.children.forEach((c, i) => { c.position.x += dt * (0.4 + (i % 3) * 0.15) * (s.clock.elapsedTime > 0 ? 1 : 0) })
+    // continuous drift (independent of time play/pause); wrap so the bank never empties
+    group.current.children.forEach((c, i) => {
+      c.position.x += dt * (0.55 + (i % 3) * 0.22)
+      if (c.position.x > 280) c.position.x -= 560
+    })
   })
   const sc = opts.scale ?? 1
   return (

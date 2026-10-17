@@ -6,6 +6,7 @@ import { useEnv } from '../../common/EnvContext'
 import { smoothstep } from '../../../lib/random'
 
 const WHITE = new THREE.Color('#ffffff')
+const AMBER = new THREE.Color('#ff6a28')
 
 /**
  * Physically based (Preetham) sky with its built-in high cloud layer, extended with
@@ -56,11 +57,22 @@ export function SkyA() {
         float band = exp(-hy * hy) * uGolden * (1.0 - uCover * 0.8);
         vec3 bandCol = mix(vec3(0.62, 0.42, 0.72), vec3(1.0, 0.45, 0.32), 0.35 + 0.65 * pow(max(cosTheta, 0.0), 2.0));
         texColor = mix(texColor, texColor * 0.6 + bandCol * 0.5, band * 0.55);
-        // larger, softer cinematic sun disc + halo (the physical one is only ~0.5°)
+        // larger, softer cinematic sun disc + halo; dims and warms near the horizon (night sky stays cool)
         float disc2 = smoothstep(0.9993, 0.99978, cosTheta);
         float halo = pow(max(cosTheta, 0.0), 180.0) * 0.6 + pow(max(cosTheta, 0.0), 1400.0) * 1.5;
         float vis = smoothstep(-0.02, 0.01, vSunDirection.y);
-        texColor += uSunTint * (disc2 * 3.2 * (1.0 - smoothstep(0.25, 0.7, uCover)) + halo * (0.35 + uGolden * 0.6) * (1.0 - uCover * 0.5)) * vis;
+        float elevF = smoothstep(-0.02, 0.28, vSunDirection.y); // 0 at horizon → 1 ~high
+        // soft gold → amber → orange-red toward dusk
+        vec3 warm = mix(vec3(1.0, 0.78, 0.42), vec3(1.0, 0.28, 0.06), clamp(1.0 - elevF * 0.85, 0.0, 1.0));
+        vec3 discCol = mix(uSunTint, warm, clamp(uGolden * (0.65 + (1.0 - elevF) * 0.4), 0.0, 0.95));
+        float coverK = 1.0 - smoothstep(0.25, 0.7, uCover);
+        // REPLACE the core (don't HDR-add) so bloom keeps the hue; soft halo still adds
+        float core = disc2 * vis * coverK;
+        texColor = mix(texColor, discCol * mix(1.05, 1.55, elevF), core);
+        texColor += discCol * halo * (0.22 + uGolden * 0.85) * (1.0 - uCover * 0.5) * mix(0.55, 1.0, elevF) * vis;
+        // warm the Preetham aureole so golden-hour sun doesn't read as cool white
+        float aure = pow(max(cosTheta, 0.0), 12.0) * uGolden * vis;
+        texColor.rgb = mix(texColor.rgb, texColor.rgb * mix(vec3(1.15, 0.78, 0.42), vec3(1.2, 0.45, 0.18), 1.0 - elevF), clamp(aure * 1.4, 0.0, 0.85));
         // midday: richer blue overhead (the physical model reads pale after tone mapping)
         float lum0 = dot(texColor, vec3(0.299, 0.587, 0.114));
         texColor = max(mix(vec3(lum0), texColor, mix(1.0, uSat, smoothstep(0.0, 0.35, direction.y))), 0.0);
@@ -89,7 +101,11 @@ export function SkyA() {
     u.turbidity.value = 2.5 + env.sun.golden * 3.0
     u.uSat.value = 1 + env.sun.day * (1 - env.sun.golden) * 0.35
     u.uGolden.value = env.sun.golden
-    u.uSunTint.value.copy(env.light.sun).lerp(WHITE, 0.3)
+    // soft gold → amber → orange-red as golden rises; cool only at high noon
+    const g = env.sun.golden
+    const elev = env.sun.elevation
+    u.uSunTint.value.copy(env.light.sun).lerp(WHITE, Math.max(0, 0.04 + (1 - g) * 0.2 - Math.max(0, (8 - elev) * 0.015)))
+    if (g > 0.02) u.uSunTint.value.lerp(AMBER, g * (0.35 + Math.max(0, (12 - elev) / 20)))
     u.uGain.value = (0.5 + env.sun.golden * 0.15) * (1 - env.weather.cover * 0.12)
     u.uCover.value = Math.max(0, env.weather.cover - 0.25) / 0.75
     u.uMist.value = env.weather.mist

@@ -5,6 +5,7 @@ import { useEnv } from './EnvContext'
 import { smoothstep } from '../../lib/random'
 
 const WHITE = new THREE.Color(1, 1, 1)
+const AMBER = new THREE.Color("#ff6a28")
 
 export interface GradientSkyOptions {
   /** angular radius of the sun disc in degrees */
@@ -82,7 +83,10 @@ export function GradientSky({ sunSize = 2.2, sunSoftness = 0.35, sunPower = 2.2,
     const u = mat.uniforms, L = env.light
     u.uTop.value.copy(L.skyTop)
     u.uHorizon.value.copy(L.skyHorizon)
-    u.uSunCol.value.copy(L.sun).lerp(WHITE, 0.35)
+    const gld = env.sun.golden
+    u.uSunCol.value.copy(L.sun).lerp(WHITE, 0.06 + (1 - gld) * 0.22)
+    if (gld > 0.02) u.uSunCol.value.lerp(AMBER, gld * 0.4)
+    u.uPower.value = sunPower * (0.55 + 0.45 * smoothstep(-2, 16, env.sun.elevation))
     u.uSun.value.copy(env.sun.dir)
     u.uGolden.value = env.sun.golden
     u.uNight.value = env.sun.night

@@ -87,7 +87,7 @@ export function useAppEffects() {
     let last = ''
     const unsub = useWorld.subscribe((s) => {
       // while time plays, only whole hours count (no per-frame stringify of the world)
-      const key = JSON.stringify([s.name, s.playing ? Math.floor(s.time) : s.time, s.weather, s.gravity, s.orbit, s.objects, s.clouds, s.playing, s.playRate])
+      const key = JSON.stringify([s.name, s.playing ? Math.floor(s.time) : s.time, s.weather, s.gravity, s.orbit, s.objects, s.clouds, s.playing, s.playRate, s.day])
       if (key === last) return
       last = key
       clearTimeout(timer)

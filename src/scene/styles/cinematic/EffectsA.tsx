@@ -30,6 +30,7 @@ function useScrubPass() {
 }
 
 const V = new THREE.Vector3()
+const SHAFT_WARM = new THREE.Color(1, 0.75, 0.45)
 /** Drives the light shafts: sun screen position + strength (golden hour, clear sky, sun in front of the camera). */
 function useSunShafts() {
   const fx = useMemo(() => new SunShaftsEffect(), [])
@@ -43,6 +44,7 @@ function useSunShafts() {
     const onScreen = ahead ? 1 - smoothstep(0.0, 0.35, Math.max(Math.abs(sx - 0.5), Math.abs(sy - 0.5)) - 0.5) : 0
     ;(u.get('uSun')!.value as THREE.Vector2).set(ahead ? sx : 0.5, ahead ? sy : 0.5)
     u.get('uStrength')!.value = k * onScreen * 0.55
+    ;(u.get('uTint')!.value as THREE.Color).copy(env.light.sun).lerp(SHAFT_WARM, 0.35)
     u.get('uAspect')!.value = size.width / Math.max(size.height, 1)
   })
   return fx

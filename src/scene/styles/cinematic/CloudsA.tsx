@@ -14,15 +14,33 @@ import { CloudActions, useIsCompact } from '../../../ui/SelectionActions'
 import { rng } from '../../../lib/random'
 
 const WHITE = new THREE.Color('#ffffff'), GREY = new THREE.Color('#9aa6b4')
-const WARM = new THREE.Color()
+const WARM = new THREE.Color(), NIGHT = new THREE.Color('#6a7aa0')
 const hitGeo = new THREE.SphereGeometry(1, 12, 8)
+const DRIFT_SPAN = 520
+const DRIFT_SPEED = 2.4
 
-/** Extra clouds that gather overhead when the weather turns cloudy. */
-function gatherSpecs(): CloudSpec[] {
-  const r = rng(555)
+/** Shared ambient drift (metres); AmbientDay reads this each frame so React props stay stable. */
+const ambientDrift = { x: 0 }
+
+function gatherSpecs(day: number): CloudSpec[] {
+  const r = rng(555 + day * 4337)
   const out: CloudSpec[] = []
-  for (let i = 0; i < 7; i++) out.push({ pos: [-170 + i * 52 + r() * 20, 70 + r() * 25, -120 - r() * 160], scale: 1.1 + r() * 0.7, seed: 90 + i })
+  const n = 5 + Math.floor(r() * 5)
+  for (let i = 0; i < n; i++) {
+    out.push({
+      pos: [-200 + i * (400 / Math.max(n - 1, 1)) + r() * 24, 55 + r() * 40, -100 - r() * 200],
+      scale: 0.9 + r() * 1.0,
+      seed: 90 + day * 40 + i,
+    })
+  }
   return out
+}
+
+/** 0 = fully today, 1 = fully tomorrow; blends across midnight (22:00 → 02:00). */
+function midnightFade(t: number) {
+  if (t >= 22) return (t - 22) / 4
+  if (t < 2) return (t + 2) / 4
+  return 0
 }
 
 function CloudToolbar({ c, y }: { c: CloudObject; y: number }) {
@@ -77,7 +95,6 @@ function GatherCloud({ spec, index }: { spec: CloudSpec; index: number }) {
   const env = useEnv()
   const g = useRef<THREE.Group>(null!)
   useFrame(() => {
-    // each cloud grows in at a slightly different cover threshold → natural gathering
     const k = THREE.MathUtils.smoothstep(env.weather.cover, 0.35 + index * 0.05, 0.75 + index * 0.025)
     g.current.scale.setScalar(Math.max(0.001, k))
     g.current.visible = k > 0.01
@@ -89,37 +106,93 @@ function GatherCloud({ spec, index }: { spec: CloudSpec; index: number }) {
   )
 }
 
-/** Soft, lit volumetric-sprite clouds that pick up sun colour at golden hour and grey under overcast. */
-export function CloudsA() {
-  const env = useEnv()
-  const horizon = useMemo(() => horizonClouds(), [])
-  const sea = useMemo(() => cloudSea(), [])
-  const gather = useMemo(() => gatherSpecs(), [])
-  const clouds = useWorld((s) => s.clouds)
-  const selectedId = useWorld((s) => s.selectedId)
-  const group = useRef<THREE.Group>(null!)
-  const tint = useMemo(() => new THREE.Color(), [])
+/** One day's ambient bank (horizon + sea + weather gather). */
+function AmbientDay({ day, opacity }: { day: number; opacity: number }) {
+  const horizon = useMemo(() => horizonClouds(day), [day])
+  const sea = useMemo(() => cloudSea(day), [day])
+  const gather = useMemo(() => gatherSpecs(day), [day])
+  const g = useRef<THREE.Group>(null!)
+  const op = useRef(opacity)
+  op.current = opacity
   useFrame(() => {
-    const L = env.light
-    const cover = env.weather.cover
-    tint.copy(L.fog).lerp(L.hemiSky, 0.3).lerp(WHITE, env.sun.day * (0.35 + (1 - env.sun.golden) * 0.4)).lerp(GREY, cover * 0.45 * env.sun.day)
-    tint.lerp(L.fog, env.weather.mist * 0.55)
-    group.current.traverse((o) => {
+    if (!g.current) return
+    g.current.position.x = ambientDrift.x
+    const a = op.current
+    g.current.visible = a > 0.02
+    g.current.traverse((o) => {
       const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined
-      if (m && 'emissive' in m) m.emissive.copy(tint).multiplyScalar((0.3 + env.sun.day * (0.3 + (1 - env.sun.golden) * 0.25)) * (1 - cover * 0.25) * (1 - env.weather.mist * 0.3) * (1 - env.sun.night * 0.78)).add(WARM.copy(L.sun).multiplyScalar(env.sun.golden * 0.18 * (1 - cover)))
+      if (!m || !('opacity' in m)) return
+      if (m.userData.baseOp == null) m.userData.baseOp = m.opacity || 0.8
+      m.transparent = true
+      m.depthWrite = false
+      m.opacity = a * m.userData.baseOp
     })
   })
   return (
-    <group ref={group}>
+    <group ref={g}>
+      {horizon.map((c, i) => (
+        <Cloud key={'h' + day + '-' + i} seed={c.seed + 1} position={c.pos} bounds={[46 * c.scale, 7 * c.scale, 14 * c.scale]} segments={Math.round(30 + c.scale * 10)} volume={26 * c.scale} smallestVolume={0.4} concentrate="inside" growth={3} speed={0.08} fade={10} opacity={0.8} color="#ffffff" />
+      ))}
+      {sea.map((c, i) => (
+        <Cloud key={'s' + day + '-' + i} seed={c.seed} position={c.pos} bounds={[80 * c.scale, 3 * c.scale, 34 * c.scale]} segments={30} volume={30 * c.scale} smallestVolume={0.5} concentrate="outside" growth={4} speed={0.05} fade={30} opacity={0.75} color="#ffffff" />
+      ))}
+      {gather.map((c, i) => <GatherCloud key={'g' + day + '-' + i} spec={c} index={i} />)}
+    </group>
+  )
+}
+
+/** Soft lit clouds: continuous drift, time-of-day tint, layout reseeded each day with a midnight crossfade. */
+export function CloudsA() {
+  const env = useEnv()
+  const day = useWorld((s) => s.day ?? 0)
+  const time = useWorld((s) => s.time)
+  const clouds = useWorld((s) => s.clouds)
+  const selectedId = useWorld((s) => s.selectedId)
+  const heroes = useRef<THREE.Group>(null!)
+  const root = useRef<THREE.Group>(null!)
+  const tint = useMemo(() => new THREE.Color(), [])
+  const drift = useRef(0)
+
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.1)
+    // always drift — independent of time-of-day playback / pause
+    drift.current = (drift.current + dt * DRIFT_SPEED) % DRIFT_SPAN
+    ambientDrift.x = drift.current - DRIFT_SPAN * 0.35
+
+    const L = env.light
+    const cover = env.weather.cover
+    const dayAmt = env.sun.day, golden = env.sun.golden, night = env.sun.night
+    tint.copy(WHITE)
+      .lerp(L.sun, 0.15 + golden * 0.55)
+      .lerp(L.hemiSky, night * 0.55 + cover * 0.2)
+      .lerp(GREY, cover * 0.4 * dayAmt)
+      .lerp(L.fog, env.weather.mist * 0.5)
+      .lerp(NIGHT, night * 0.35)
+    const emis = (0.22 + dayAmt * (0.38 + (1 - golden) * 0.2) + golden * 0.12)
+      * (1 - cover * 0.3) * (1 - env.weather.mist * 0.35) * (1 - night * 0.72)
+    root.current?.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined
+      if (!m || !('emissive' in m)) return
+      if (m.userData.baseOp == null) m.userData.baseOp = m.opacity || 0.8
+      m.color.copy(tint)
+      m.emissive.copy(tint).multiplyScalar(emis)
+        .add(WARM.copy(L.sun).multiplyScalar(golden * 0.28 * (1 - cover) * (1 - night)))
+    })
+  })
+
+  const fade = midnightFade(time)
+  const showA = time >= 22 ? day : time < 2 ? Math.max(0, day - 1) : day
+  const showB = time >= 22 ? day + 1 : time < 2 ? day : day
+  const cross = fade > 0.001 && showA !== showB
+
+  return (
+    <group ref={root}>
       <Clouds texture={`${import.meta.env.BASE_URL}tex/cloud.png`} material={THREE.MeshLambertMaterial} limit={1800} frustumCulled={false}>
-        {horizon.map((c, i) => (
-          <Cloud key={'h' + i} seed={c.seed + 1} position={c.pos} bounds={[46 * c.scale, 7 * c.scale, 14 * c.scale]} segments={Math.round(30 + c.scale * 10)} volume={26 * c.scale} smallestVolume={0.4} concentrate="inside" growth={3} speed={0.06} fade={10} opacity={0.8} color="#ffffff" />
-        ))}
-        {sea.map((c, i) => (
-          <Cloud key={'s' + i} seed={c.seed} position={c.pos} bounds={[80 * c.scale, 3 * c.scale, 34 * c.scale]} segments={30} volume={30 * c.scale} smallestVolume={0.5} concentrate="outside" growth={4} speed={0.04} fade={30} opacity={0.75} color="#ffffff" />
-        ))}
-        {gather.map((c, i) => <GatherCloud key={'g' + i} spec={c} index={i} />)}
-        {clouds.map((c) => <HeroCloud key={c.id} c={c} selected={c.id === selectedId} />)}
+        <AmbientDay day={showA} opacity={cross ? 1 - fade : 1} />
+        {cross && <AmbientDay day={showB} opacity={fade} />}
+        <group ref={heroes}>
+          {clouds.map((c) => <HeroCloud key={c.id} c={c} selected={c.id === selectedId} />)}
+        </group>
       </Clouds>
     </group>
   )

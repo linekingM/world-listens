@@ -113,7 +113,21 @@ export const useWorld = create<WorldState>((set, get) => ({
   hintSeen: (() => { try { return localStorage.getItem('world-listens.hint') === '1' } catch { return false } })(),
 
   setStyle: (style) => set({ style }),
-  setTime: (time, ease = 'drag') => { if (Number.isFinite(time)) set({ time: wrap24(time), timeEase: ease }) },
+  setTime: (time, ease = 'drag') => {
+    if (!Number.isFinite(time)) return
+    const prev = get().time
+    let day = get().day ?? 0
+    if (ease === 'play' || ease === 'slow') {
+      // TimePlayer passes prev + delta; may exceed [0,24)
+      if (time >= 24) day += Math.floor(time / 24)
+      else if (time < 0) day += Math.floor(time / 24) // negative floor
+    } else {
+      const next = wrap24(time)
+      if (prev > 18 && next < 6) day++
+      else if (prev < 6 && next > 18) day--
+    }
+    set({ time: wrap24(time), timeEase: ease, day: Math.max(0, day) })
+  },
   setWeather: (weather) => {
     const t = get().time
     if (weather === 'sunset') set({ weather, time: 18.6, timeEase: 'slow' })
@@ -157,11 +171,11 @@ export const useWorld = create<WorldState>((set, get) => ({
   setCamMode: (camMode) => set({ camMode, panel: null, placing: null }),
 
   // a new world: drop per-object sim offsets (ids like bench-0 are reused) and stale 撤销 toasts
-  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, playing: doc.play?.on ?? false, playRate: doc.play?.rate ?? 30, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
+  loadDoc: (doc) => { epoch++; sims.clear(); set((s) => ({ ...doc, day: doc.day ?? 0, playing: doc.play?.on ?? false, playRate: doc.play?.rate ?? 30, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
   resetWorld: () => { epoch++; sims.clear(); set((s) => ({ ...defaultWorld(), playing: false, playRate: 30, selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit', toasts: s.toasts.filter((t) => !t.action) })) },
   getDoc: () => {
     const s = get()
-    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds, play: { on: s.playing, rate: s.playRate } }
+    return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds, play: { on: s.playing, rate: s.playRate }, day: s.day ?? 0 }
   },
   toast: (text, kind = 'info', action) => {
     const id = ++toastId
