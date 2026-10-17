@@ -2,112 +2,112 @@
   {
     "name": "loads without errors, no style switcher, HUD present",
     "ok": true,
-    "s": 0.054
+    "s": 0.068
   },
   {
     "name": "HUD covers < 12% of the screen (desktop)",
     "ok": true,
-    "s": 0.018
+    "s": 0.008
   },
   {
     "name": "time dial: click → time, keyboard → +15min, sun/light follow",
     "ok": true,
-    "s": 43.476
+    "s": 43.91
   },
   {
     "name": "drag the sun in the sky changes time",
     "ok": true,
-    "s": 56.781
+    "s": 54.721
   },
   {
     "name": "weather transitions gradually (clear → cloudy → mist → clear)",
     "ok": true,
-    "s": 30.814
+    "s": 29.386
   },
   {
     "name": "add object: pick 岩石 then click the ground",
     "ok": true,
-    "s": 6.352
+    "s": 5.891
   },
   {
     "name": "move: drag the selected object across the ground",
     "ok": true,
-    "s": 29.806
+    "s": 26.412
   },
   {
     "name": "rotate + scale via toolbar, F/R shortcuts",
     "ok": true,
-    "s": 3.084
+    "s": 3.086
   },
   {
     "name": "delete via toolbar; click empty space deselects",
     "ok": true,
-    "s": 7.23
+    "s": 6.553
   },
   {
     "name": "drag a floating island in the air",
     "ok": true,
-    "s": 19.352
+    "s": 18.291
   },
   {
     "name": "drag a cloud, then turn a cloud into an island",
     "ok": true,
-    "s": 27.987
+    "s": 27.001
   },
   {
     "name": "gravity: weightless lifts objects, chip shows, restore lands them",
     "ok": true,
-    "s": 37.646
+    "s": 35.121
   },
   {
     "name": "camera orbit is limited and reset returns home",
     "ok": true,
-    "s": 50.968
+    "s": 59.123
   },
   {
     "name": "looser orbit: zoom in closer than before, camera never inside an island",
     "ok": true,
-    "s": 27.993
+    "s": 29.255
   },
   {
     "name": "free-roam: toggle, WASD walk, drag to look, typing does not move, ground collision, Esc glides home",
     "ok": true,
-    "s": 56.545
+    "s": 70.914
   },
   {
     "name": "save locally, change world, load save back",
     "ok": true,
-    "s": 14.33
+    "s": 15.15
   },
   {
     "name": "export PNG downloads an image",
     "ok": true,
-    "s": 5.964
+    "s": 6.307
   },
   {
     "name": "share link round-trips the whole world",
     "ok": true,
-    "s": 182.673
+    "s": 201.299
   },
   {
     "name": "combo surprise: starry night + weightless → meteor shower discovered",
     "ok": true,
-    "s": 21.506
+    "s": 21.577
   },
   {
     "name": "autosave: reload restores the edited world",
     "ok": true,
-    "s": 12.958
+    "s": 10.401
   },
   {
     "name": "reset world (two-step confirm)",
     "ok": true,
-    "s": 5.184
+    "s": 6.831
   },
   {
     "name": "sun-drag wow: fast time change raises a wind gust with petals",
     "ok": true,
-    "s": 11.791
+    "s": 14.004
   },
   {
     "name": "no runtime errors during the whole desktop session",
@@ -117,16 +117,16 @@
   {
     "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
     "ok": true,
-    "s": 53.03
+    "s": 57.068
   },
   {
     "name": "mobile free-roam: joystick walks, drag looks, rail hidden, 返回 exits",
     "ok": true,
-    "s": 29.248
+    "s": 29.442
   },
   {
     "name": "first-visit onboarding hint shows once and dismisses",
     "ok": true,
-    "s": 22.891
+    "s": 21.314
   }
 ]

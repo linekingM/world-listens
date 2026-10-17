@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# screenshots: only the curated sets are versioned (test/wip shots are regenerated)
+shots/*
+!shots/best/
+!shots/roam/
