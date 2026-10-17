@@ -110,6 +110,7 @@ export function useAppEffects() {
       if (e.key === 'Escape') {
         if (st.placing) st.setPlacing(null)
         else if (st.panel) st.setPanel(null)
+        else if (st.camMode === 'roam') st.setCamMode('orbit') // glides smoothly back to the home view
         else st.select(null)
         return
       }

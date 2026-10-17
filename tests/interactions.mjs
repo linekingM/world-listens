@@ -259,8 +259,13 @@ await test('gravity: weightless lifts objects, chip shows, restore lands them', 
   await page.click('[data-testid=rail-gravity]')
 })
 
+const camReset = async (pg) => {
+  // the camera tool is a small panel: 复位视角 / 自由漫游
+  if (!(await pg.isVisible('[data-testid=panel-camera]'))) await pg.click('[data-testid=rail-view]')
+  await pg.click('[data-testid=cam-reset]')
+}
 await test('camera orbit is limited and reset returns home', async () => {
-  await page.click('[data-testid=rail-view]')
+  await camReset(page)
   await page.waitForTimeout(2500)
   await frames(page, 5)
   const home = await page.evaluate(() => window.__cam.position.toArray())
@@ -274,8 +279,68 @@ await test('camera orbit is limited and reset returns home', async () => {
   assert(dist > 3, 'camera did not move ' + dist)
   const tooLow = await page.evaluate(() => window.__cam.position.y)
   assert(tooLow > 1, 'camera under ground')
-  await page.click('[data-testid=rail-view]')
+  await camReset(page)
   await page.waitForFunction((h) => { const p = window.__cam.position; return Math.hypot(p.x - h[0], p.y - h[1], p.z - h[2]) < 1.5 }, home, { timeout: 120000 })
+})
+
+await test('looser orbit: zoom in closer than before, camera never inside an island', async () => {
+  const c = { x: 640, y: 420 }
+  await page.mouse.move(c.x, c.y)
+  for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, -1500); await frames(page, 3) }
+  await frames(page, 15)
+  const dist = await page.evaluate(() => window.__cam.position.distanceTo(window.__camTarget))
+  assert(dist < 11.5, 'can zoom closer than the old 12 m limit: ' + dist)
+  // park the camera inside the hero island rock: collision must push it out (or onto the grass)
+  const isl = await st(page, (s) => s.objects.find((o) => o.type === 'island'))
+  await page.evaluate((p) => { window.__cam.position.set(p[0], p[1] - 4, p[2]) }, isl.pos)
+  await frames(page, 4)
+  const out = await page.evaluate((p) => { const c = window.__cam.position; return { d: Math.hypot(c.x - p[0], c.z - p[2]), y: c.y } }, isl.pos)
+  assert(out.d > 3 || out.y > isl.pos[1], 'camera left inside island ' + JSON.stringify(out))
+  await camReset(page)
+  await page.waitForFunction(() => { const p = window.__cam.position; return Math.hypot(p.x - 8, p.y - 15, p.z - 38) < 1.5 }, null, { timeout: 120000 })
+})
+
+await test('free-roam: toggle, WASD walk, drag to look, typing does not move, ground collision, Esc glides home', async () => {
+  if (!(await page.isVisible('[data-testid=panel-camera]'))) await page.click('[data-testid=rail-view]')
+  await page.click('[data-testid=cam-roam]')
+  assert(await page.isVisible('[data-testid=roam-hud]'), 'roam hint visible')
+  assert((await st(page, (s) => s.camMode)) === 'roam', 'roam mode')
+  const p0 = await page.evaluate(() => window.__cam.position.toArray())
+  await page.keyboard.down('KeyW'); await frames(page, 10); await page.keyboard.up('KeyW')
+  await frames(page, 6)
+  const p1 = await page.evaluate(() => window.__cam.position.toArray())
+  assert(p1[2] < p0[2] - 2, 'W walks forward (towards the city) ' + p0 + ' -> ' + p1)
+  // drag to look
+  const yaw0 = await page.evaluate(() => window.__roam.yaw)
+  await drag(page, { x: 640, y: 420 }, { x: 820, y: 440 }, 6)
+  const yaw1 = await page.evaluate(() => window.__roam.yaw)
+  assert(Math.abs(yaw1 - yaw0) > 0.2, 'drag turns the view ' + yaw0 + ' -> ' + yaw1)
+  // typing a world name must not walk
+  await page.click('[data-testid=open-save]')
+  await page.click('[data-testid=world-name]')
+  const before = await page.evaluate(() => window.__cam.position.toArray())
+  await page.keyboard.type('wasd ')
+  await frames(page, 8)
+  const after = await page.evaluate(() => window.__cam.position.toArray())
+  assert(Math.hypot(after[0] - before[0], after[1] - before[1], after[2] - before[2]) < 0.05, 'moved while typing')
+  assert((await page.inputValue('[data-testid=world-name]')).includes('wasd'), 'text typed')
+  await page.evaluate(() => { document.activeElement?.blur(); window.__world.getState().setPanel(null) })
+  // ground collision
+  await page.evaluate(() => { window.__cam.position.y = -30 })
+  await frames(page, 3)
+  assert(await page.evaluate(() => window.__cam.position.y > 0.5), 'below ground')
+  // Esc (or the 返回 button) glides back to the home framing
+  await page.click('[data-testid=roam-exit]')
+  await page.waitForFunction(() => { const p = window.__cam.position; return Math.hypot(p.x - 8, p.y - 15, p.z - 38) < 1.5 }, null, { timeout: 120000 })
+  assert((await st(page, (s) => s.camMode)) === 'orbit', 'back to orbit')
+  // Esc path
+  await page.click('[data-testid=rail-view]')
+  await page.click('[data-testid=cam-roam]')
+  await page.keyboard.down('KeyD'); await frames(page, 6); await page.keyboard.up('KeyD')
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => window.__world.getState().camMode === 'orbit', null, { timeout: 30000 })
+  await page.waitForFunction(() => { const p = window.__cam.position; return Math.hypot(p.x - 8, p.y - 15, p.z - 38) < 1.5 }, null, { timeout: 120000 })
+  await page.screenshot({ path: `${SHOTS}/T-roam-home.png` })
 })
 
 let savedDoc = null
@@ -389,6 +454,28 @@ await test('mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place
   assert(bar.x >= 0 && bar.x + bar.width <= 390, 'selection bar inside viewport')
   await frames(m, 8)
   await m.screenshot({ path: `${SHOTS}/T-mobile-edit.png` })
+  assert(m.errors.length === 0, m.errors.join(' | '))
+  await mctx.close()
+})
+
+await test('mobile free-roam: joystick walks, drag looks, rail hidden, 返回 exits', async () => {
+  const { ctx: mctx, page: m } = await open({ width: 390, height: 844 }, { mobile: true, dpr: 1, query: '?t=15' })
+  await m.tap('[data-testid=rail-view]')
+  await m.tap('[data-testid=cam-roam]')
+  await m.waitForSelector('[data-testid=roam-joystick]')
+  assert(!(await m.isVisible('.rail')), 'rail hidden while roaming on a phone')
+  const p0 = await m.evaluate(() => window.__cam.position.toArray())
+  const j = await (await m.$('[data-testid=roam-joystick]')).boundingBox()
+  const cx = j.x + j.width / 2, cy = j.y + j.height / 2
+  await m.mouse.move(cx, cy); await m.mouse.down(); await m.mouse.move(cx, cy - 45, { steps: 3 })
+  await frames(m, 10)
+  await m.mouse.up()
+  await frames(m, 4)
+  const p1 = await m.evaluate(() => window.__cam.position.toArray())
+  assert(Math.hypot(p1[0] - p0[0], p1[2] - p0[2]) > 2, 'joystick walked ' + p0 + ' -> ' + p1)
+  await m.screenshot({ path: `${SHOTS}/T-mobile-roam.png` })
+  await m.tap('[data-testid=roam-exit]')
+  assert((await st(m, (s) => s.camMode)) === 'orbit', 'exit roam')
   assert(m.errors.length === 0, m.errors.join(' | '))
   await mctx.close()
 })

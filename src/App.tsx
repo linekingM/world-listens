@@ -6,6 +6,7 @@ import { Hint, StatusChips, Title, Toasts, useAppEffects } from './ui/Feedback'
 import { useWorld } from './state/worldStore'
 import { overlayRef } from './ui/overlay'
 import { SelectionBar } from './ui/SelectionActions'
+import { RoamHud } from './ui/RoamHud'
 
 export default function App() {
   const style = useWorld((s) => s.style)
@@ -24,6 +25,7 @@ export default function App() {
         <SelectionBar />
         <SunDial />
         <Hint />
+        <RoamHud />
       </div>
     </div>
   )

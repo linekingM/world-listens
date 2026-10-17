@@ -36,4 +36,4 @@ export interface WorldDoc {
   clouds: CloudObject[]
 }
 
-export type Panel = 'weather' | 'add' | 'gravity' | 'save' | 'share' | null
+export type Panel = 'weather' | 'add' | 'gravity' | 'camera' | 'save' | 'share' | null

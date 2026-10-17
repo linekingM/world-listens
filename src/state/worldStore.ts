@@ -22,11 +22,14 @@ interface UIState {
   /** how fast the visible time chases the target: 'drag' = snappy, 'slow' = cinematic transition */
   timeEase: 'drag' | 'slow'
   cameraResetTick: number
+  /** 'orbit' = framed orbit around the scene, 'roam' = game-style free explore (WASD / joystick) */
+  camMode: 'orbit' | 'roam'
   toasts: Toast[]
   hintSeen: boolean
 }
 
 interface Actions {
+  setCamMode: (m: 'orbit' | 'roam') => void
   setStyle: (s: StyleId) => void
   setTime: (t: number, ease?: 'drag' | 'slow') => void
   setWeather: (w: WeatherId) => void
@@ -76,6 +79,7 @@ export const useWorld = create<WorldState>((set, get) => ({
   dragging: false,
   timeEase: 'drag',
   cameraResetTick: 0,
+  camMode: 'orbit',
   toasts: [],
   hintSeen: localStorage.getItem('world-listens.hint') === '1',
 
@@ -118,10 +122,11 @@ export const useWorld = create<WorldState>((set, get) => ({
   togglePanel: (p) => set((s) => ({ panel: s.panel === p ? null : p, placing: null })),
   setRailOpen: (railOpen) => set({ railOpen, panel: railOpen ? get().panel : null }),
   setDragging: (dragging) => set({ dragging }),
-  requestCameraReset: () => set((s) => ({ cameraResetTick: s.cameraResetTick + 1 })),
+  requestCameraReset: () => set((s) => ({ cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
+  setCamMode: (camMode) => set({ camMode, panel: null, placing: null }),
 
-  loadDoc: (doc) => set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1 })),
-  resetWorld: () => set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1 })),
+  loadDoc: (doc) => set((s) => ({ ...doc, selectedId: null, placing: null, panel: s.panel === 'save' ? 'save' : null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
+  resetWorld: () => set((s) => ({ ...defaultWorld(), selectedId: null, placing: null, timeEase: 'slow', cameraResetTick: s.cameraResetTick + 1, camMode: 'orbit' })),
   getDoc: () => {
     const s = get()
     return { v: 1, name: s.name, time: s.time, weather: s.weather, gravity: s.gravity, orbit: s.orbit, objects: s.objects, clouds: s.clouds }

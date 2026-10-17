@@ -6,9 +6,12 @@ import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OC } from 'three-stdlib'
 import { useStyleDef } from './EnvContext'
 import { useWorld } from '../../state/worldStore'
-import { terrainHeight } from '../../world/layout'
+import { collideCamera } from './cameraCollide'
+import { FreeRoam, roam } from './FreeRoam'
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
+/** an object / cloud / sun drag owns the pointer: orbit controls pause */
+const interactionBusy = () => useWorld.getState().dragging
 
 export interface CamPose { pos: Vector3; target: Vector3 }
 /** Imperative camera moves for UI flows (save auto-framing, load). Filled by <CameraRig/>. */
@@ -27,6 +30,8 @@ export function CameraRig() {
   const home = useRef({ pos: new Vector3(), target: new Vector3() })
   const tween = useRef<{ t: number; fromP: Vector3; fromT: Vector3; toP: Vector3; toT: Vector3; dur: number; done?: () => void } | null>(null)
   const resetTick = useWorld((s) => s.cameraResetTick)
+  const camMode = useWorld((s) => s.camMode)
+  const prevMode = useRef(camMode)
 
   useEffect(() => {
     const pos = new Vector3(...style.camera.position)
@@ -50,6 +55,22 @@ export function CameraRig() {
     ctl.current?.update()
   }, [camera, style, aspect])
 
+  // leaving free-roam: aim the orbit pivot where we are looking (no snap), then glide home
+  useEffect(() => {
+    const was = prevMode.current
+    prevMode.current = camMode
+    const c = ctl.current
+    if (!c || was === camMode) return
+    if (camMode === 'orbit') {
+      c.target.copy(camera.position).add(camera.getWorldDirection(new Vector3()).multiplyScalar(25))
+      cameraApi.glide()
+    } else {
+      tween.current?.done?.()
+      tween.current = null
+      c.enableDamping = true
+    }
+  }, [camMode, camera])
+
   useEffect(() => {
     if (!resetTick || !ctl.current) return
     // drop any residual damping / zoom momentum so the camera lands exactly on its home framing
@@ -57,11 +78,18 @@ export function CameraRig() {
   }, [resetTick, camera])
 
   useEffect(() => {
-    cameraApi.getPose = () => (ctl.current ? { pos: camera.position.clone(), target: ctl.current.target.clone() } : null)
+    const roaming = () => useWorld.getState().camMode === 'roam'
+    cameraApi.getPose = () => {
+      if (!ctl.current) return null
+      // in free-roam the orbit pivot is stale: use a point straight ahead of the eye
+      const target = roaming() ? camera.position.clone().add(camera.getWorldDirection(new Vector3()).multiplyScalar(25)) : ctl.current.target.clone()
+      return { pos: camera.position.clone(), target }
+    }
     cameraApi.glide = (pose, seconds = 1.4) => new Promise<void>((resolve) => {
       const c = ctl.current
       if (!c) return resolve()
       tween.current?.done?.()
+      if (roaming()) { roam.paused = true; c.target.copy(camera.position).add(camera.getWorldDirection(new Vector3()).multiplyScalar(25)) }
       // drop residual damping / zoom momentum so the camera lands exactly on the pose
       c.enableDamping = false
       c.update()
@@ -78,35 +106,45 @@ export function CameraRig() {
       camera.position.lerpVectors(tw.fromP, tw.toP, k)
       c.target.lerpVectors(tw.fromT, tw.toT, k)
       c.update()
-      if (tw.t >= 1) { tween.current = null; c.enableDamping = true; tw.done?.() }
+      if (tw.t >= 1) {
+        tween.current = null; c.enableDamping = true
+        // a scripted glide inside free-roam (save auto-framing) hands the camera back to the roam controller
+        if (roam.paused) { roam.paused = false; roam.sync(camera) }
+        tw.done?.()
+      }
     }
-    // never dip below the terrain
-    const g = terrainHeight(camera.position.x, camera.position.z) + 2.5
-    if (camera.position.y < g) camera.position.y = g
-    if (c) {
-      c.target.x = MathUtils.clamp(c.target.x, -200, 200)
-      c.target.z = MathUtils.clamp(c.target.z, -330, 60)
-      c.target.y = MathUtils.clamp(c.target.y, 0, 80)
+    const roaming = camMode === 'roam'
+    if (c) c.enabled = !roaming && !interactionBusy()
+    // never dip below the terrain or into floating-island rock (free-roam does its own collision)
+    if (!roaming) collideCamera(camera.position, useWorld.getState().objects, 2.5)
+    if (c && !roaming) {
+      c.target.x = MathUtils.clamp(c.target.x, -300, 300)
+      c.target.z = MathUtils.clamp(c.target.z, -440, 120)
+      c.target.y = MathUtils.clamp(c.target.y, -2, 140)
     }
     ;(window as unknown as { __cam: unknown }).__cam = camera
+    if (c) (window as unknown as { __camTarget: unknown }).__camTarget = c.target
     ;(window as unknown as { __renderer: unknown }).__renderer = state.gl
     ;(window as unknown as { __scene: unknown }).__scene = state.scene
     ;(window as unknown as { __frames: number }).__frames = ((window as unknown as { __frames: number }).__frames ?? 0) + 1
   })
   return (
-    <OrbitControls
-      ref={ctl}
-      makeDefault
-      enableDamping
-      dampingFactor={0.08}
-      minDistance={12}
-      maxDistance={220}
-      maxPolarAngle={Math.PI * 0.53}
-      minPolarAngle={Math.PI * 0.18}
-      rotateSpeed={0.5}
-      zoomSpeed={0.7}
-      panSpeed={0.6}
-      screenSpacePanning={false}
-    />
+    <>
+      <OrbitControls
+        ref={ctl}
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        minDistance={4}
+        maxDistance={420}
+        maxPolarAngle={Math.PI * 0.6}
+        minPolarAngle={Math.PI * 0.04}
+        rotateSpeed={0.6}
+        zoomSpeed={0.9}
+        panSpeed={0.9}
+        screenSpacePanning={false}
+      />
+      {camMode === 'roam' && <FreeRoam />}
+    </>
   )
 }

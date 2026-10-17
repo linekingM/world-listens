@@ -1,0 +1,32 @@
+// Free-roam smoke probe: toggle via the camera panel, walk with W, collide, Esc back home.
+import { chromium } from 'playwright'
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
+const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } })
+await ctx.addInitScript(() => localStorage.setItem('world-listens.hint', '1'))
+const p = await ctx.newPage()
+const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()) })
+await p.goto('http://127.0.0.1:4173/?t=10')
+await p.waitForFunction(() => (window.__frames ?? 0) > 20, null, { timeout: 180000 })
+const pos = () => p.evaluate(() => window.__cam.position.toArray().map((v) => +v.toFixed(2)))
+await p.click('[data-testid=rail-view]')
+await p.click('[data-testid=cam-roam]')
+console.log('mode', await p.evaluate(() => window.__world.getState().camMode), 'hud', await p.isVisible('[data-testid=roam-hud]'))
+const a = await pos()
+await p.keyboard.down('KeyW'); await p.waitForTimeout(6000); await p.keyboard.up('KeyW')
+const b2 = await pos()
+console.log('walk', a, '->', b2)
+// typing in the name field must not move
+await p.keyboard.down('KeyS'); await p.waitForTimeout(3000); await p.keyboard.up('KeyS')
+console.log('back', await pos())
+// drag to look
+const yaw0 = await p.evaluate(() => window.__roam.yaw)
+await p.mouse.move(640, 400); await p.mouse.down(); await p.mouse.move(800, 420, { steps: 6 }); await p.mouse.up()
+console.log('yaw', yaw0.toFixed(3), '->', (await p.evaluate(() => window.__roam.yaw)).toFixed(3))
+// try to dig into the ground
+await p.evaluate(() => { window.__cam.position.y = -20 })
+await p.waitForTimeout(1500)
+console.log('ground clamp y', (await pos())[1])
+await p.keyboard.press('Escape')
+await p.waitForFunction(() => { const c = window.__cam.position; return Math.hypot(c.x - 8, c.y - 15, c.z - 38) < 1.5 }, null, { timeout: 120000 }).then(() => console.log('home OK')).catch(() => console.log('home FAIL'))
+console.log('mode', await p.evaluate(() => window.__world.getState().camMode), 'errors', errs.join(' | '))
+await b.close()

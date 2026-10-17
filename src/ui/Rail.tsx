@@ -16,11 +16,11 @@ const GRAVITY_PRESETS: { g: number; label: string }[] = [
   { g: 1, label: '正常' }, { g: 0.45, label: '月球' }, { g: 0, label: '失重' }, { g: -0.6, label: '反转' },
 ]
 
-function RailBtn({ icon, label, panel, onClick, active }: { icon: IconName; label: string; panel?: 'weather' | 'add' | 'gravity'; onClick?: () => void; active?: boolean }) {
+function RailBtn({ icon, label, panel, onClick, active, testId }: { icon: IconName; label: string; panel?: 'weather' | 'add' | 'gravity' | 'camera'; onClick?: () => void; active?: boolean; testId?: string }) {
   const open = useWorld((s) => panel && s.panel === panel)
   const togglePanel = useWorld((s) => s.togglePanel)
   return (
-    <button className={`rail-btn${open || active ? ' on' : ''}`} onClick={onClick ?? (() => panel && togglePanel(panel))} aria-label={label} aria-expanded={panel ? !!open : undefined} data-testid={`rail-${panel ?? 'view'}`}>
+    <button className={`rail-btn${open || active ? ' on' : ''}`} onClick={onClick ?? (() => panel && togglePanel(panel))} aria-label={label} aria-expanded={panel ? !!open : undefined} data-testid={testId ?? `rail-${panel ?? 'view'}`}>
       <Icon name={icon} size={20} />
       <span className="rail-label">{label}</span>
     </button>
@@ -102,6 +102,30 @@ function GravityPanel() {
   )
 }
 
+function CameraPanel() {
+  const camMode = useWorld((s) => s.camMode)
+  const setCamMode = useWorld((s) => s.setCamMode)
+  const resetCam = useWorld((s) => s.requestCameraReset)
+  const toast = useWorld((s) => s.toast)
+  const compact = useIsCompact()
+  return (
+    <div className="panel glass" data-testid="panel-camera">
+      <div className="panel-title">视角</div>
+      <div className="chip-row">
+        <button className="pill" onClick={() => { resetCam(); toast('视角已复位') }} data-testid="cam-reset"><Icon name="restore" size={16} /> 复位视角</button>
+        <button className={`pill${camMode === 'roam' ? ' on' : ''}`} aria-pressed={camMode === 'roam'} onClick={() => setCamMode(camMode === 'roam' ? 'orbit' : 'roam')} data-testid="cam-roam">
+          <Icon name="camera" size={16} /> 自由漫游
+        </button>
+      </div>
+      <div className="panel-note">
+        {compact
+          ? '漫游：左下摇杆行走，拖动屏幕环顾，右下按钮升降，飞上浮岛或走向城门。'
+          : '漫游：WASD / 方向键行走 · 拖动环顾 · 空格/E 上升 · Q 下降 · Shift 加速 · Esc 返回。平时可拖动旋转、滚轮缩放、右键平移。'}
+      </div>
+    </div>
+  )
+}
+
 /** Collapsible tool rail (bottom-left) and its panels. */
 export function Rail() {
   const compact = useIsCompact()
@@ -109,11 +133,10 @@ export function Rail() {
   const panel = useWorld((s) => s.panel)
   const railOpen = useWorld((s) => s.railOpen)
   const setRailOpen = useWorld((s) => s.setRailOpen)
-  const resetCam = useWorld((s) => s.requestCameraReset)
-  const toast = useWorld((s) => s.toast)
+  const roaming = useWorld((s) => s.camMode === 'roam')
   const altered = useWorld((s) => s.gravity !== 1 || s.orbit)
   // phones: one bottom bar — while something is selected its actions take the rail's place
-  if (compact && hasSel) return null
+  if (compact && (hasSel || roaming)) return null
   return (
     <div className={`rail-wrap${railOpen ? '' : ' closed'}`}>
       {railOpen && panel && panel !== 'save' && panel !== 'share' && (
@@ -121,6 +144,7 @@ export function Rail() {
           {panel === 'weather' && <WeatherPanel />}
           {panel === 'add' && <AddPanel />}
           {panel === 'gravity' && <GravityPanel />}
+          {panel === 'camera' && <CameraPanel />}
         </div>
       )}
       <nav className="rail glass" aria-label="工具">
@@ -129,7 +153,7 @@ export function Rail() {
             <RailBtn icon="weather" label="天气" panel="weather" />
             <RailBtn icon="plus" label="添加" panel="add" />
             <RailBtn icon="feather" label="重力" panel="gravity" active={altered} />
-            <RailBtn icon="camera" label="视角" onClick={() => { resetCam(); toast('视角已复位') }} />
+            <RailBtn icon="camera" label="视角" panel="camera" active={roaming} testId="rail-view" />
             <span className="rail-sep" />
           </>
         )}

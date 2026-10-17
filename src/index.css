@@ -218,3 +218,20 @@ button { font: inherit; color: inherit; }
   .rail-wrap:has(.panel-slot) .rail-label { opacity: 1 !important; }
   .dial-phase { letter-spacing: 0.1em; }
 }
+
+/* ───────── free-roam (explore) mode ───────── */
+.roam-hint { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-radius: 999px; font-size: 12.5px; color: rgba(255,255,255,0.92); pointer-events: auto; animation: pop 0.25s var(--ease); white-space: nowrap; }
+.roam-title { font-weight: 600; letter-spacing: 0.08em; }
+.roam-keys { opacity: 0.85; }
+.roam-hint kbd { font: inherit; font-size: 11px; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); }
+.pill.small { padding: 5px 11px; font-size: 12px; min-height: 0; }
+.joystick { position: fixed; left: 22px; bottom: calc(118px + env(safe-area-inset-bottom)); width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; pointer-events: auto; touch-action: none; }
+.joystick-knob { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.55); box-shadow: 0 4px 14px rgba(0,0,0,0.25); transition: transform 0.06s linear; }
+.roam-updown { position: fixed; right: 20px; bottom: calc(124px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
+.roam-btn { width: 54px; height: 54px; border-radius: 50%; font-size: 22px; color: #fff; touch-action: none; }
+@media (max-width: 720px) {
+  .roam-hint { top: 64px; left: 12px; right: 12px; transform: none; border-radius: 16px; white-space: normal; font-size: 12px; gap: 8px; padding: 8px 8px 8px 14px; }
+  .roam-hint .roam-title { flex: none; }
+  .roam-hint .roam-keys { flex: 1; min-width: 0; white-space: normal; }
+  .roam-hint .pill { flex: none; }
+}
