@@ -1,7 +1,152 @@
 [
   {
+    "name": "loads without errors, no style switcher, HUD present",
+    "ok": true,
+    "s": 0.081
+  },
+  {
+    "name": "HUD covers < 12% of the screen (desktop)",
+    "ok": true,
+    "s": 0.004
+  },
+  {
+    "name": "time dial: click → time, keyboard → +15min, sun/light follow",
+    "ok": true,
+    "s": 55.904
+  },
+  {
+    "name": "drag the sun in the sky changes time",
+    "ok": true,
+    "s": 76.444
+  },
+  {
+    "name": "time playback: plays, rate cycles, holds while the dial is dragged, resumes, pauses, saved in the doc",
+    "ok": true,
+    "s": 50.181
+  },
+  {
+    "name": "weather transitions gradually (clear → cloudy → mist → clear)",
+    "ok": true,
+    "s": 43.146
+  },
+  {
+    "name": "add object: pick 岩石 then click the ground",
+    "ok": true,
+    "s": 8.916
+  },
+  {
+    "name": "move: drag the selected object across the ground",
+    "ok": true,
+    "s": 42.076
+  },
+  {
+    "name": "rotate + scale via toolbar, F/R shortcuts",
+    "ok": true,
+    "s": 4.51
+  },
+  {
+    "name": "delete via toolbar; click empty space deselects",
+    "ok": true,
+    "s": 9.872
+  },
+  {
+    "name": "drag a floating island in the air",
+    "ok": true,
+    "s": 27.006
+  },
+  {
+    "name": "drag a cloud, then turn a cloud into an island",
+    "ok": true,
+    "s": 39.624
+  },
+  {
+    "name": "gravity: weightless lifts objects, chip shows, restore lands them",
+    "ok": true,
+    "s": 54.489
+  },
+  {
+    "name": "camera orbit is limited and reset returns home",
+    "ok": true,
+    "s": 81.594
+  },
+  {
+    "name": "looser orbit: zoom in closer than before, camera never inside an island",
+    "ok": true,
+    "s": 39.954
+  },
+  {
+    "name": "free-roam: toggle, WASD walk, drag to look, typing does not move, ground collision, Esc glides home",
+    "ok": true,
+    "s": 91.439
+  },
+  {
+    "name": "quality 高/中/低: trees follow the tier, choice persists, 自动 clears it",
+    "ok": true,
+    "s": 23.182
+  },
+  {
+    "name": "save locally, change world, load save back",
+    "ok": true,
+    "s": 20.653
+  },
+  {
+    "name": "export PNG downloads an image",
+    "ok": true,
+    "s": 7.83
+  },
+  {
+    "name": "share link round-trips the whole world",
+    "ok": true,
+    "s": 247.294
+  },
+  {
+    "name": "combo surprise: starry night + weightless → meteor shower discovered",
+    "ok": true,
+    "s": 32.908
+  },
+  {
+    "name": "fireflies: none by day; a clear night with normal gravity (萤火之夜) brings them, day fades them out",
+    "ok": true,
+    "s": 62.837
+  },
+  {
+    "name": "autosave: reload restores the edited world",
+    "ok": true,
+    "s": 13.465
+  },
+  {
+    "name": "reset world (two-step confirm)",
+    "ok": true,
+    "s": 8.409
+  },
+  {
+    "name": "sun-drag wow: fast time change raises a wind gust with petals",
+    "ok": true,
+    "s": 14.134
+  },
+  {
+    "name": "no runtime errors during the whole desktop session",
+    "ok": true,
+    "s": 0
+  },
+  {
+    "name": "mobile layout: HUD < 12%, no overlap, panels as sheets, tap to place",
+    "ok": true,
+    "s": 61.224
+  },
+  {
+    "name": "mobile free-roam: joystick walks, drag looks, rail hidden, 返回 exits",
+    "ok": true,
+    "s": 37.948
+  },
+  {
     "name": "mobile roam touch gestures: drag looks, pinch moves, two-finger drag rises, double-tap glides, no selection",
     "ok": true,
-    "s": 185.195
+    "s": 118.111
+  },
+  {
+    "name": "first-visit onboarding hint shows once and dismisses",
+    "ok": true,
+    "s": 31.649
   }
 ]
