@@ -6,6 +6,7 @@ import { useEnv } from './EnvContext'
 import { useWorld } from '../../state/worldStore'
 import { cloudSpecs } from '../../world/layout'
 import { noise2, rng } from '../../lib/random'
+import { afterglowRgb, cloudAfterglow } from '../../world/sunLook'
 
 export interface PuffyOptions {
   detail: number
@@ -79,13 +80,15 @@ export function PuffyClouds(opts: PuffyOptions & { scale?: number; opacity?: num
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       uSun: { value: new THREE.Vector3(0, 1, 0) }, uLit: { value: new THREE.Color() }, uShade: { value: new THREE.Color() },
       uRimCol: { value: new THREE.Color() }, uSteps: { value: steps }, uRim: { value: rim }, uOpacity: { value: opts.opacity ?? 1 },
+      uGlow: { value: 0 }, uGlowCol: { value: new THREE.Color('#ffb15a') },
     }]),
     vertexShader: /* glsl */`
       #include <fog_pars_vertex>
-      varying vec3 vN; varying vec3 vView; varying float vY;
+      varying vec3 vN; varying vec3 vView; varying float vY; varying vec3 vWorld;
       void main(){
         vN = normalize(mat3(modelMatrix) * normal);
         vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorld = wp.xyz;
         vView = normalize(cameraPosition - wp.xyz);
         vY = position.y;
         vec4 mvPosition = viewMatrix * wp;
@@ -94,18 +97,29 @@ export function PuffyClouds(opts: PuffyOptions & { scale?: number; opacity?: num
       }`,
     fragmentShader: /* glsl */`
       #include <fog_pars_fragment>
-      uniform vec3 uSun, uLit, uShade, uRimCol; uniform float uSteps, uRim, uOpacity;
-      varying vec3 vN; varying vec3 vView; varying float vY;
+      uniform vec3 uSun, uLit, uShade, uRimCol, uGlowCol; uniform float uSteps, uRim, uOpacity, uGlow;
+      varying vec3 vN; varying vec3 vView; varying float vY; varying vec3 vWorld;
       void main(){
         vec3 n = normalize(vN);
-        float l = dot(n, normalize(uSun)) * 0.5 + 0.5;
+        vec3 sun = normalize(uSun);
+        float l = dot(n, sun) * 0.5 + 0.5;
         l = mix(l, smoothstep(0.0, 1.0, l), 0.5);
         if (uSteps > 0.5) l = floor(l * uSteps + 0.5) / uSteps;
         float base = smoothstep(-0.25, 0.9, vY); // darker underside
         vec3 c = mix(uShade, uLit, clamp(l * (0.65 + base * 0.45), 0.0, 1.0));
         float fres = pow(1.0 - max(dot(n, normalize(vView)), 0.0), 2.5);
-        float back = max(dot(-normalize(vView), normalize(uSun)), 0.0);
+        float back = max(dot(-normalize(vView), sun), 0.0);
         c += uRimCol * fres * uRim * (0.35 + back * 1.2);
+        // Afterglow on undersides and the sun-facing side. Clouds toward the sun
+        // azimuth take more of it; the opposite side stays near the base colour.
+        vec3 sH = vec3(sun.x, 0.0, sun.z);
+        float sHL = length(sH);
+        float sunFace = sHL > 1e-4 ? smoothstep(-0.2, 0.8, dot(n, sH / sHL)) : 0.5;
+        vec3 wH = vec3(vWorld.x, 0.0, vWorld.z);
+        float place = sHL > 1e-4 ? smoothstep(-0.35, 0.55, dot(normalize(wH + vec3(1e-4)), sH / sHL)) : 0.5;
+        float under = 1.0 - smoothstep(-0.05, 0.55, vY);
+        float glowK = uGlow * (0.55 + 0.45 * place) * (0.18 + 0.82 * under) * (0.35 + 0.65 * sunFace);
+        c = mix(c, uGlowCol, clamp(glowK, 0.0, 0.84));
         gl_FragColor = vec4(c, uOpacity);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -115,7 +129,13 @@ export function PuffyClouds(opts: PuffyOptions & { scale?: number; opacity?: num
   const shade = useMemo(() => new THREE.Color(shadowTint), [shadowTint])
   useFrame((_, dt) => {
     const u = mat.uniforms, L = env.light
-    u.uSun.value.copy(env.sun.elevation > -3 ? env.sun.dir : MOON_UP)
+    const glow = cloudAfterglow(env.sun.elevation, env.time)
+    // Keep the low sun as the light until the afterglow has faded. Below that,
+    // the scene moon takes over (same −3° switch as before, once glow is gone).
+    u.uSun.value.copy(env.sun.elevation > -3 || glow > 0.02 ? env.sun.dir : MOON_UP)
+    const [gr, gg, gb] = afterglowRgb(env.sun.elevation)
+    u.uGlow.value = glow
+    u.uGlowCol.value.setRGB(gr, gg, gb)
     // lit side: white warmed by the sun; shadow side: sky colour pushed towards the style's shadow tint
     u.uLit.value.copy(WHITE).lerp(L.sun, 0.25 + env.sun.golden * 0.45).multiplyScalar(0.25 + env.sun.day * 0.85)
     u.uShade.value.copy(L.hemiSky).lerp(shade, 0.45).lerp(L.fog, env.sun.golden * 0.35).multiplyScalar(0.3 + env.sun.day * 0.6)

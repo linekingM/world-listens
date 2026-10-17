@@ -141,8 +141,8 @@ export const ISLANDS: IslandSpec[] = [
 ]
 
 const THREE_DEG = 180 / Math.PI
-/** azimuth (deg) of the ~18:30 sun as seen from the hero camera (reversed arc, ≈ +67°) */
-const SUNSET_VIEW_AZ = 67
+/** Sunset gap centre (deg) from the hero camera. Original 18°; this arc sets at +26°, inside the ±10° window. */
+const SUNSET_VIEW_AZ = 18
 
 /** Small islands for user-created / cloud-born islands (variants 3..5). */
 export const SMALL_ISLANDS: IslandSpec[] = [

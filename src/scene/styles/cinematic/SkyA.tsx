@@ -5,13 +5,14 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js'
 import { useEnv } from '../../common/EnvContext'
 import { smoothstep } from '../../../lib/random'
 import { useWorld } from '../../../state/worldStore'
-import { effectiveWarmth, warmthToRgb, physicalSunWarmth } from '../../../world/sunLook'
+import { effectiveWarmth, warmthToRgb, physicalSunWarmth, sunDiscExtinction } from '../../../world/sunLook'
 
 const WHITE = new THREE.Color('#ffffff')
 
 /**
  * Physically based (Preetham) sky + night stars.
- * Sun disc: pale white most of the day; yellow→amber→orange-red only near sunset.
+ * Sun disc: pale white above ~20° elevation; warm on the same curve at dawn and dusk.
+ * The disc dims toward the horizon. Its angular size does not change.
  * Optional manual warmth/hue from store (sunLook).
  */
 export function SkyA() {
@@ -81,9 +82,12 @@ export function SkyA() {
         // pale white core by day; warmer only when uWarmth rises — never a dark rim
         vec3 discCol = uSunTint;
         texColor = mix(texColor, discCol, core);
-        // soft falloff only (same hue, slightly dimmer — not a contrasting ring)
-        float soft = pow(max(cosTheta, 0.0), 900.0) * (1.0 - disc) * vis * coverK;
-        texColor += discCol * soft * (0.04 + uWarmth * 0.06);
+        // soft falloff only (same hue — not a contrasting ring). Tighter and dimmer
+        // as warmth rises so the dusk aureole does not wash over the disc. Midday
+        // (uWarmth = 0) stays at exponent 900 and gain 0.04. Disc radius is unchanged.
+        float softPow = mix(900.0, 1900.0, clamp(uWarmth, 0.0, 1.0));
+        float soft = pow(max(cosTheta, 0.0), softPow) * (1.0 - disc) * vis * coverK;
+        texColor += discCol * soft * mix(0.04, 0.026, clamp(uWarmth, 0.0, 1.0));
         // midday saturation
         float lum0 = dot(texColor, vec3(0.299, 0.587, 0.114));
         float satK = mix(1.0, uSat, smoothstep(0.0, 0.4, direction.y));
@@ -116,13 +120,18 @@ export function SkyA() {
     const phys = physicalSunWarmth(elev, hour)
     const warmth = effectiveWarmth(look, elev, hour)
     const [wr, wg, wb] = warmthToRgb(warmth, look.hue)
+    const ext = sunDiscExtinction(elev)
+    const dr = wr * ext, dg = wg * ext, db = wb * ext
     // golden for sky band: only when physically warm (not the broad elev golden)
     u.uGolden.value = Math.max(env.sun.golden * 0.35, phys)
     u.uWarmth.value = warmth
-    u.uSunTint.value.setRGB(wr, wg, wb)
+    u.uSunTint.value.setRGB(dr, dg, db)
     // mild turbidity; don't bleach midday
     u.turbidity.value = 2.0 + phys * 2.2 + env.weather.cover * 1.6
     u.rayleigh.value = 2.5 - phys * 0.4 - env.weather.cover * 0.5
+    // dusk aureole: a little less mie, slightly more forward-peaked. Midday unchanged.
+    u.mieCoefficient.value = 0.002 - warmth * 0.0007
+    u.mieDirectionalG.value = 0.76 + warmth * 0.06
     u.uSat.value = 1 + env.sun.day * (1 - phys) * 0.28
     u.uGain.value = (0.42 + phys * 0.1) * (1 - env.weather.cover * 0.12)
     u.uCover.value = Math.max(0, env.weather.cover - 0.25) / 0.75
@@ -137,7 +146,7 @@ export function SkyA() {
       hue: look.hue,
       physicalWarmth: +phys.toFixed(3),
       elev: +elev.toFixed(2),
-      rgb: [+wr.toFixed(3), +wg.toFixed(3), +wb.toFixed(3)],
+      rgb: [+dr.toFixed(3), +dg.toFixed(3), +db.toFixed(3)],
       disc: look.mode === 'manual' ? 'manual' : 'physical',
       hour: +hour.toFixed(2),
     }

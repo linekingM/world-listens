@@ -12,6 +12,7 @@ import { cloudHitMat } from '../../objects/WorldObjects'
 import { overlayRef } from '../../../ui/overlay'
 import { CloudActions, useIsCompact } from '../../../ui/SelectionActions'
 import { rng } from '../../../lib/random'
+import { afterglowRgb, cloudAfterglow } from '../../../world/sunLook'
 
 const WHITE = new THREE.Color('#ffffff'), GREY = new THREE.Color('#9aa6b4')
 const WARM = new THREE.Color(), NIGHT = new THREE.Color('#6a7aa0')
@@ -141,6 +142,75 @@ function AmbientDay({ day, opacity }: { day: number; opacity: number }) {
   )
 }
 
+/**
+ * Billboard puffs have no stable "bottom" in UV (they spin). Mark the world-down
+ * side of each sprite and the side facing the sun, and remember where the puff sits.
+ * drei's CloudMaterial replaces onBeforeCompile, so this wraps that hook.
+ */
+function patchCloudAfterglow(m: THREE.MeshLambertMaterial) {
+  if (m.userData.afterglow) return
+  m.userData.afterglow = true
+  const prev = m.onBeforeCompile.bind(m)
+  const prevKey = m.customProgramCacheKey.bind(m)
+  m.onBeforeCompile = (shader, renderer) => {
+    prev(shader, renderer)
+    shader.uniforms.uGlow = { value: 0 }
+    shader.uniforms.uGlowCol = { value: new THREE.Color('#ffb15a') }
+    shader.uniforms.uSunW = { value: new THREE.Vector3(0, 1, 0) }
+    shader.vertexShader = `uniform vec3 uSunW;\nvarying float vAlongUp;\nvarying float vSunAlong;\nvarying vec3 vCloudWp;\n` + shader.vertexShader
+    shader.vertexShader = shader.vertexShader.replace(
+      'vOpacity = cloudOpacity;',
+      `vOpacity = cloudOpacity;
+       {
+         mat3 im = mat3(1.0);
+         #ifdef USE_INSTANCING
+           im = mat3(instanceMatrix);
+         #endif
+         vec2 local = transformed.xy;
+         float ll = length(local);
+         vec2 upG = vec2(im[0].y, im[1].y);
+         float ug = length(upG);
+         vAlongUp = (ll > 1e-4 && ug > 1e-4) ? dot(local / ll, upG / ug) : 0.0;
+         vec2 sunG = vec2(0.0);
+         vec2 sh = uSunW.xz;
+         float shl = length(sh);
+         if (shl > 1e-4) {
+           vec3 s = vec3(sh.x / shl, 0.0, sh.y / shl);
+           sunG = vec2(dot(im[0], s), dot(im[1], s));
+         }
+         float sg = length(sunG);
+         vSunAlong = (ll > 1e-4 && sg > 1e-4) ? dot(local / ll, sunG / sg) : 0.0;
+         vec4 center = vec4(0.0, 0.0, 0.0, 1.0);
+         #ifdef USE_INSTANCING
+           center = instanceMatrix * center;
+         #endif
+         vCloudWp = (modelMatrix * center).xyz;
+       }`,
+    )
+    shader.fragmentShader = `uniform float uGlow; uniform vec3 uGlowCol; uniform vec3 uSunW;\nvarying float vAlongUp; varying float vSunAlong; varying vec3 vCloudWp;\n` + shader.fragmentShader
+    shader.fragmentShader = shader.fragmentShader.replace(
+      'gl_FragColor = vec4(outgoingLight, diffuseColor.a * vOpacity);',
+      `{
+         vec3 glowLit = outgoingLight;
+         float under = smoothstep(0.25, -0.7, vAlongUp);
+         float sunSide = smoothstep(-0.2, 0.7, vSunAlong);
+         vec2 cxz = vCloudWp.xz;
+         vec2 sxz = uSunW.xz;
+         float cl = length(cxz);
+         float sl = length(sxz);
+         float align = (cl > 1.0 && sl > 1e-4) ? dot(cxz / cl, sxz / sl) : 0.0;
+         float place = smoothstep(-0.35, 0.55, align);
+         float glowK = uGlow * (0.55 + 0.45 * place) * (0.18 + 0.82 * under) * (0.35 + 0.65 * sunSide);
+         glowLit = mix(glowLit, uGlowCol, clamp(glowK, 0.0, 0.84));
+         gl_FragColor = vec4(glowLit, diffuseColor.a * vOpacity);
+       }`,
+    )
+    m.userData.shader = shader
+  }
+  m.customProgramCacheKey = () => prevKey() + '|afterglow'
+  m.needsUpdate = true
+}
+
 /** Soft lit clouds: continuous drift, time-of-day tint, layout reseeded each day with a midnight crossfade. */
 export function CloudsA() {
   const env = useEnv()
@@ -162,6 +232,8 @@ export function CloudsA() {
     const L = env.light
     const cover = env.weather.cover
     const dayAmt = env.sun.day, golden = env.sun.golden, night = env.sun.night
+    const glow = cloudAfterglow(env.sun.elevation, env.time)
+    const [gr, gg, gb] = afterglowRgb(env.sun.elevation)
     tint.copy(WHITE)
       .lerp(L.sun, 0.15 + golden * 0.55)
       .lerp(L.hemiSky, night * 0.55 + cover * 0.2)
@@ -174,6 +246,16 @@ export function CloudsA() {
       const m = (o as THREE.Mesh).material as THREE.MeshLambertMaterial | undefined
       if (!m || !('emissive' in m)) return
       if (m.userData.baseOp == null) m.userData.baseOp = m.opacity || 0.8
+      patchCloudAfterglow(m)
+      const sh = m.userData.shader as {
+        uniforms: { uSunW: { value: THREE.Vector3 }; uGlow: { value: number }; uGlowCol: { value: THREE.Color } }
+      } | undefined
+      if (sh) {
+        // Real sun azimuth, including after the scene light has flipped to the moon.
+        sh.uniforms.uSunW.value.copy(env.sun.dir)
+        sh.uniforms.uGlow.value = glow
+        sh.uniforms.uGlowCol.value.setRGB(gr, gg, gb)
+      }
       m.color.copy(tint)
       m.emissive.copy(tint).multiplyScalar(emis)
         .add(WARM.copy(L.sun).multiplyScalar(golden * 0.28 * (1 - cover) * (1 - night)))

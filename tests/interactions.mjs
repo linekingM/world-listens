@@ -110,8 +110,8 @@ await test('time dial: click → time, keyboard → +15min, sun/light follow', a
 })
 
 await test('drag the sun in the sky changes time', async () => {
-  // Reversed arc: the sun stays off the hero frame (behind, then right). Face it, then
-  // drag up-right — earlier hours sit that way along the new arc.
+  // Afternoon sun stays off the hero frame (behind the viewer, then to the right).
+  // Face it at 16:00; earlier hours sit up and to the right along this arc.
   let err
   try {
     await page.evaluate(() => window.__world.getState().setTime(16))

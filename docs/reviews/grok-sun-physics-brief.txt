@@ -1,0 +1,51 @@
+# IMPLEMENT NOW — 4 user-approved sun items (world-listens). Physics correctness is top priority.
+
+Implement ONLY these 4 items. No other changes, no new UI/buttons, no refactors, no deploy/push/build/e2e
+(the parent runs build, tests and shots). Edit files in this turn — not audit-only. Finish with `npx tsc -b`
+and a short report: files touched + why, final formulas, warmth at 07:00/08:00/17:00/17:55/18:30/19:00, and
+whether cloud afterglow existed before your change.
+
+Reference elevations (unchanged curve, src/world/sun.ts): 07:00 2.6°, 07:30 6.2°, 08:00 11.3°, 09:00 24.9°,
+17:00 20.9°, 17:30 14.2°, 17:55 9.2°, 18:30 3.7°, 19:00 0.7°, 19:18 sunset 0°, 19:45 −1.4°, 20:00 −3.0°.
+
+## 1) Sun path — azimuth only (src/world/sun.ts)
+Currently (commit 357e58a): az = -100 - 205*clamp(dayT,-0.3,1.3).
+NEW, exactly: az = -154 - 180*clamp(dayT,-0.3,1.3)   (deg, same dir formula)
+ → sunrise −154° (behind-left, physically opposite the sunset), passes BEHIND the viewer (noon ≈ +116..125°,
+   three-quarter front light toward the city), right side light in the afternoon, sets at −334 ≡ +26° —
+   EXACTLY the original pre-357e58a sunset azimuth. Night continuity via the same clamp.
+ - Update the doc comment above sunAt.
+ - src/world/layout.ts: revert SUNSET_VIEW_AZ to 18 (original); keepSunsetWindow unchanged.
+ - tests/interactions.mjs 'drag the sun in the sky changes time': keep whatever makes it valid under the new arc
+   (at 17.4 the sun is at ≈+11° az, elev ~15° → likely on screen from the default camera again, so the original
+   simple version may work: verify by math; drag direction: earlier hours are up and to the LEFT-behind now… compute).
+   Keep it minimal.
+ - geometry.ts:219 baked sunDir (0.65,0.45,0.4) and SunRig shadow camera: keep unless clearly inconsistent; say why.
+
+## 2) Sun colour timing (src/world/sunLook.ts physicalSunWarmth / effectiveWarmth — the value the SunDial shows)
+Warming starts too late. Express it as a smooth function of ELEVATION (physical; dawn mirrors dusk):
+ - warmth ≈ 0 (near white) above ~20° elevation (before ~17:00), smooth ease-in, no visible step;
+ - warmth = 0.65 at elev 9.24° (17:55); warmth = 1.0 at elev 3.73° (18:30); stays 1.0 down through sunset
+   and just below the horizon, then fades with night as now.
+ - Morning: same physical elevation curve (warm at sunrise, white by mid-morning ~elev 20°, ≈08:40). Check it's
+   consistent; hour param may remain in the signature but don't make dawn/dusk asymmetric by hour.
+ - Disc brightness should dim naturally as it nears the horizon (SkyA disc colour/intensity: e.g. scale the disc
+   colour by a smooth elevation-based extinction factor, ~1 at high sun → ~0.6–0.7 at 0°). Don't change disc size.
+
+## 3) Halo (SkyA.tsx and/or the Preetham mie params there)
+At dusk (high warmth / low elevation) the glow AROUND the sun must be TIGHTER (less wash over the disc). The disc size
+(smoothstep 0.99925..0.99978) must NOT change. Midday halo unchanged. E.g. raise the soft-falloff exponent and/or
+lower its gain with warmth, and/or lower mieCoefficient / raise mieDirectionalG slightly with warmth. Keep it subtle.
+
+## 4) Afterglow / 晚霞 on clouds (src/scene/common/PuffyClouds.tsx and any other cloud shader actually drawn, e.g. horizon/
+cloud-sea clouds; check which components render clouds in the cinematic style)
+First REPORT whether clouds tint at dusk today (looks always white to the user).
+Physically: shortly before sunset through ~20–30 min after (elevation ≈ +4° down to ≈ −3°, peak ≈ 0…−1°), cloud
+undersides and clouds on the sun side turn golden → orange/pink, then fade to grey-blue as dusk deepens (by ≈ −4…−6°).
+Implement a brief, elevation-driven afterglow factor (smooth bell), applied to the cloud lit/shade colours with
+stronger effect on undersides and toward the sun azimuth; subtle-to-vivid but natural, NOT a whole-sky paint.
+Note clouds currently switch uSun to MOON_UP below −3°; the afterglow must still read lit from the low sun side until it fades.
+Apply the same mildly at dawn (morning glow, same elevation window, a bit weaker is fine).
+
+## Do NOT
+touch haze/fog/palette keys, SunDial UI, sunLook manual mode, elevation curve, unrelated files.
