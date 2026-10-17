@@ -2,7 +2,7 @@ import { chromium } from 'playwright'
 import { mkdirSync, writeFileSync } from 'fs'
 const OUT = 'shots/qa-review/phys-sun/dusk-series'
 mkdirSync(OUT, { recursive: true })
-const TIMES = [18, 18.25, 18.5, 18.75, 19, 19.25, 19.5]
+const TIMES = process.env.TIMES ? process.env.TIMES.split(',').map(Number) : [18, 18.25, 18.5, 18.75, 19, 19.25, 19.5]
 const label = (t) => { const h = Math.floor(t), m = Math.round((t - h) * 60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` }
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] })
 const wait = async (p, n) => { const f0 = await p.evaluate(() => window.__frames ?? 0); await p.waitForFunction(([f0,n]) => (window.__frames??0) > f0+n, [f0,n], { timeout: 360000 }) }
@@ -26,7 +26,7 @@ const pose = (x0, alt, z0) => page.evaluate(([x0, alt, z0]) => {
 const sunScreen = () => page.evaluate(() => {
   const c = window.__cam, d = window.__env.sun.dir
   c.updateMatrixWorld()
-  const p = c.position.clone().addScaledVector(d, 5000).project(c)
+  const p = c.position.clone().addScaledVector(d, 50).project(c)
   return { x: Math.round((p.x+1)/2*innerWidth), y: Math.round((1-p.y)/2*innerHeight), z: +p.z.toFixed(3) }
 })
 async function pixelCheck(sx, sy) {
@@ -35,7 +35,7 @@ async function pixelCheck(sx, sy) {
 }
 // candidate vantage points: high & pulled back opposite sun, various lateral offsets
 const candidates = []
-for (const alt of [45, 60, 80]) for (const back of [60, 120]) for (const side of [0, -40, 40]) candidates.push({ alt, back, side })
+if (process.env.FIXED) candidates.push({ alt: 45, back: 120, side: -40 }); else for (const alt of [45, 60, 80]) for (const back of [60, 120]) for (const side of [0, -40, 40]) candidates.push({ alt, back, side })
 
 const meta = {}
 for (const t of TIMES) {
@@ -63,7 +63,7 @@ for (const t of TIMES) {
     }, buf.toString('base64'))
     const lum = (avg[0]+avg[1]+avg[2])/3
     const inFrame = ss.z < 1 && ss.x > 200 && ss.x < 1080 && ss.y > 120 && ss.y < 640
-    const ok = inFrame && lum > 185 && avg[0] >= avg[2]
+    const ok = inFrame && lum > (process.env.MINLUM ? +process.env.MINLUM : 185) && avg[0] >= avg[2]
     console.log(name, JSON.stringify(c), JSON.stringify(ss), avg, ok ? 'OK' : 'reject')
     if (ok) { chosen = { cand: c, sunScreen: ss, discAvgRgb: avg, discLum: Math.round(lum) }; break }
   }
@@ -76,6 +76,6 @@ for (const t of TIMES) {
   Object.assign(meta[name], chosen ? { verified: true, ...chosen } : { verified: false, note: 'no unoccluded vantage found (sun below horizon/occluded)' })
   await page.screenshot({ path: `${OUT}/${name}.png` })
 }
-writeFileSync(`${OUT}/meta.json`, JSON.stringify(meta, null, 2))
+writeFileSync(`${OUT}/${process.env.META || 'meta.json'}`, JSON.stringify(meta, null, 2))
 await b.close()
 console.log('done')

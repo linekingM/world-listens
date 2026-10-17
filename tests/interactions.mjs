@@ -110,24 +110,45 @@ await test('time dial: click → time, keyboard → +15min, sun/light follow', a
 })
 
 await test('drag the sun in the sky changes time', async () => {
-  await page.evaluate(() => window.__world.getState().setTime(17.4))
-  await page.waitForFunction(() => Math.abs(window.__env.time - 17.4) < 0.05, null, { timeout: 60000 })
-  await frames(page, 3)
-  const sun = await page.evaluate(() => { const c = window.__cam.position, d = window.__env.sun.dir; return [c.x + d.x * 1400, c.y + d.y * 1400, c.z + d.z * 1400] })
-  const q = await project(page, sun)
-  assert(!q.behind && q.x > 0 && q.x < 1280 && q.y > 0 && q.y < 800, `sun off screen at 17.4: ${q.x},${q.y}`)
-  const before = await st(page, (s) => s.time)
-  await drag(page, q, { x: q.x - 220, y: q.y - 120 }, 12)
-  const after = await st(page, (s) => s.time)
-  assert(after < before - 0.5, `time ${before} → ${after} (sun at ${q.x.toFixed(0)},${q.y.toFixed(0)})`)
-  await page.screenshot({ path: `${SHOTS}/T-sun-drag.png` })
-  await page.evaluate(() => window.__world.getState().setTime(10))
-  await frames(page, 30)
+  // Reversed arc: the sun stays off the hero frame (behind, then right). Face it, then
+  // drag up-right — earlier hours sit that way along the new arc.
+  let err
+  try {
+    await page.evaluate(() => window.__world.getState().setTime(16))
+    await page.waitForFunction(() => Math.abs(window.__env.time - 16) < 0.05, null, { timeout: 60000 })
+    await page.evaluate(() => window.__world.getState().setCamMode('roam'))
+    await page.waitForFunction(() => {
+      const d = window.__env.sun.dir, r = window.__roam
+      r.yaw = Math.atan2(-d.x, -d.z)
+      r.pitch = Math.asin(Math.max(-1, Math.min(1, d.y)))
+      r.vel.set(0, 0, 0)
+      const e = window.__cam.matrixWorld.elements
+      return window.__world.getState().camMode === 'roam' && -e[8] * d.x + -e[9] * d.y + -e[10] * d.z > 0.98
+    }, null, { timeout: 30000 })
+    const sun = await page.evaluate(() => { const c = window.__cam.position, d = window.__env.sun.dir; return [c.x + d.x * 1400, c.y + d.y * 1400, c.z + d.z * 1400] })
+    const q = await project(page, sun)
+    assert(!q.behind && q.x > 0 && q.x < 1280 && q.y > 0 && q.y < 800, `sun off screen at 16: ${q.x},${q.y}`)
+    const before = await st(page, (s) => s.time)
+    await drag(page, q, { x: q.x + 130, y: q.y - 175 }, 12)
+    const after = await st(page, (s) => s.time)
+    assert(after < before - 0.5, `time ${before} → ${after} (sun at ${q.x.toFixed(0)},${q.y.toFixed(0)})`)
+    await page.screenshot({ path: `${SHOTS}/T-sun-drag.png` })
+  } catch (e) { err = e }
+  await page.evaluate(() => { const s = window.__world.getState(); s.setTime(10); s.setCamMode('orbit') })
+  await page.waitForFunction(() => {
+    const p = window.__cam.position, e = window.__cam.matrixWorld.elements
+    const dx = -4 - p.x, dy = 17 - p.y, dz = -80 - p.z, len = Math.hypot(dx, dy, dz)
+    const look = (-e[8] * dx + -e[9] * dy + -e[10] * dz) / len
+    return window.__world.getState().camMode === 'orbit' && Math.hypot(p.x - 8, p.y - 15, p.z - 38) < 1.5 && look > 0.995
+  }, null, { timeout: 120000 })
+  if (err) throw err
 })
 
 await test('time playback: plays, rate cycles, holds while the dial is dragged, resumes, pauses, saved in the doc', async () => {
   const t = () => st(page, (s) => s.time)
   const moved = (a, c) => { const d = ((c - a) % 24 + 24) % 24; return d > 0.04 && d < 12 }
+  // the dial auto-collapses when idle (rate pill only shows expanded); open it if the previous test idled it shut
+  if (!(await page.$('[data-testid=time-rate]'))) { await page.click('[data-testid=dial-toggle]'); await page.waitForSelector('[data-testid=time-rate]') }
   await page.click('[data-testid=time-play]')
   let a = await t(); await frames(page, 10)
   assert(moved(a, await t()), 'time advances while playing')

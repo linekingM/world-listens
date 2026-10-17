@@ -19,9 +19,13 @@ export interface SunState {
 }
 
 /**
- * Sun path (artistic, not astronomical): rises behind-left of the default camera so
- * mornings are warm side-light with long shadows across the road, culminates high
- * in front, and sets inside the frame on the right for a backlit golden sunset.
+ * Sun path (artistic, not astronomical). Sunrise azimuth stays -100°
+ * (behind-left of the default camera). Travel is reversed so the sun passes
+ * behind and above the viewer and the hero view stays front-lit. Angle from
+ * the view axis (0° dead backlight, 90° side, 180° front-lit): ~146° at 09:00,
+ * ~168° at noon, ~121° at 15:00, ~83° at 17:30, ~64° at 18:45, and ~55° at
+ * sunset — on the right, a modest turn from the hero frame.
+ * Elevation, golden hour and day/night are unchanged.
  */
 export function sunAt(hour: number, out = new THREE.Vector3()): SunState {
   const dayT = (hour - SUNRISE) / (SUNSET - SUNRISE)
@@ -30,7 +34,7 @@ export function sunAt(hour: number, out = new THREE.Vector3()): SunState {
   // mornings linger lower (longer golden light), evenings descend steadily
   const shape = dayT < 0.5 ? 2.2 : 1.7
   const elevRad = Math.sign(s) * Math.pow(Math.abs(s), shape) * MAX_ELEV
-  const az = THREE.MathUtils.degToRad(-100 + 126 * clamp(dayT, -0.3, 1.3))
+  const az = THREE.MathUtils.degToRad(-100 - 205 * clamp(dayT, -0.3, 1.3))
   out.set(Math.sin(az) * Math.cos(elevRad), Math.sin(elevRad), -Math.cos(az) * Math.cos(elevRad)).normalize()
   const elevation = THREE.MathUtils.radToDeg(elevRad)
   const day = clamp((elevation + 6) / 14)
