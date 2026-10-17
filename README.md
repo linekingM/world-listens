@@ -10,3 +10,5 @@ npm run build
 
 Drag the sun on the bottom dial to change the time of day (real sun direction, sky, fog, light colour and shadows).
 Orbit / zoom / pan with mouse or touch. See `docs/PHASE0.md` for structure, tooling and screenshot scripts.
+
+接手请先读 [`docs/HANDOVER.md`](docs/HANDOVER.md)（现状、太阳路线、下一步系统规划、用户约束）。
