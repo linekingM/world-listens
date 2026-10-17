@@ -74,7 +74,7 @@ export function SunRig() {
     hemi.current.intensity = L.hemiI
     const fog = scene.fog as THREE.FogExp2
     fog.color.copy(L.fog)
-    fog.density = style.fogDensity * (1 + env.sun.golden * 0.35 + env.sun.night * 0.2 + cover * 0.5 + mist * 1.7)
+    fog.density = style.fogDensity * (1 + env.sun.golden * 0.08 + env.sun.night * 0.12 + cover * 0.3 + mist * 1.7)
 
     // ── shared shader uniforms ──
     fxUniforms.uTime.value = state.clock.elapsedTime
@@ -82,7 +82,7 @@ export function SunRig() {
     fxUniforms.uSunDir.value.copy(env.sun.dir)
     fxUniforms.uSunView.value.copy(env.sun.dir).transformDirection(camera.matrixWorldInverse)
     fxUniforms.uSunCol.value.copy(L.sun)
-    fxUniforms.uValley.value = 0.22 + env.sun.golden * 0.4 + env.weather.mist * 0.3 + env.sun.night * 0.1
+    fxUniforms.uValley.value = 0.06 + env.sun.golden * 0.14 + env.weather.mist * 0.3 + env.sun.night * 0.06
     fxUniforms.uLeafGlow.value = smoothstep(-3, 4, env.sun.elevation) * (1 - cover * 0.75)
     fxUniforms.uGlint.value = env.sun.golden * smoothstep(-2, 2, env.sun.elevation) * (1 - cover)
     fxUniforms.uNight.value = env.sun.night * (1 - cover * 0.6)

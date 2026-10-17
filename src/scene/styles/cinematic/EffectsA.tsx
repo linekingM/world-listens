@@ -43,7 +43,7 @@ function useSunShafts() {
     // fade as the sun leaves the frame (no pop at the edge), off when it is behind the camera
     const onScreen = ahead ? 1 - smoothstep(0.0, 0.35, Math.max(Math.abs(sx - 0.5), Math.abs(sy - 0.5)) - 0.5) : 0
     ;(u.get('uSun')!.value as THREE.Vector2).set(ahead ? sx : 0.5, ahead ? sy : 0.5)
-    u.get('uStrength')!.value = k * onScreen * 0.55
+    u.get('uStrength')!.value = k * onScreen * 0.16
     ;(u.get('uTint')!.value as THREE.Color).copy(env.light.sun).lerp(SHAFT_WARM, 0.35)
     u.get('uAspect')!.value = size.width / Math.max(size.height, 1)
   })
@@ -70,7 +70,7 @@ export function EffectsA() {
       <EffectComposer multisampling={0} enableNormalPass={false} ref={(c) => { (window as unknown as { __composer: unknown }).__composer = c }}>
         <primitive object={scrub} dispose={null} />
         <primitive object={shafts} dispose={null} />
-        <Bloom mipmapBlur luminanceThreshold={0.9} luminanceSmoothing={0.25} intensity={0.45} radius={0.6} />
+        <Bloom mipmapBlur luminanceThreshold={1.25} luminanceSmoothing={0.35} intensity={0.12} radius={0.35} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette offset={0.32} darkness={0.34} />
         <Noise premultiply opacity={0.06} blendFunction={BlendFunction.SOFT_LIGHT} />

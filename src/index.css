@@ -134,6 +134,9 @@ button { font: inherit; color: inherit; }
 
 /* ───────── sun dial ───────── */
 .sun-dial { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; padding: 8px 20px 6px 22px; border-radius: 24px; }
+.sun-dial.is-collapsed { gap: 10px; padding: 6px 14px 6px 12px; border-radius: 999px; }
+.sun-dial .dial-readout { appearance: none; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; padding: 0; }
+.sun-dial .dial-more { opacity: 0.7; font-size: 0.85em; }
 .dial-readout { display: flex; flex-direction: column; align-items: flex-start; min-width: 70px; }
 .dial-time { font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; line-height: 1.1; }
 .dial-phase { font-family: var(--font-title); font-size: 12.5px; letter-spacing: 0.32em; color: var(--ink-soft); margin-top: 2px; }
@@ -204,6 +207,8 @@ button { font: inherit; color: inherit; }
   .action-pill button span { display: none; }
   .popover { position: fixed; left: 12px; right: 12px; top: calc(64px + env(safe-area-inset-top)); width: auto; }
   .sun-dial { left: 12px; right: 12px; transform: none; bottom: calc(12px + env(safe-area-inset-bottom)); padding: 4px 12px 2px 14px; gap: 10px; border-radius: 20px; }
+  .sun-dial.is-collapsed { left: 50%; right: auto; transform: translateX(-50%); width: auto; max-width: calc(100vw - 24px); border-radius: 999px; padding: 6px 12px 6px 10px; gap: 8px; }
+  .sun-dial.is-open { left: 12px; right: 12px; transform: none; }
   .dial-readout { min-width: 54px; }
   .play-btn { width: 30px; height: 30px; }
   .rate-pill { font-size: 9.5px; padding: 1px 4px; }

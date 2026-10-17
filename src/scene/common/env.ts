@@ -11,7 +11,7 @@ export interface WeatherMix {
 }
 
 export const WEATHER_TARGETS: Record<WeatherId, WeatherMix> = {
-  clear: { cover: 0.22, mist: 0 },
+  clear: { cover: 0.1, mist: 0 },
   cloudy: { cover: 0.92, mist: 0.12 },
   mist: { cover: 0.4, mist: 1 },
   sunset: { cover: 0.32, mist: 0.04 },

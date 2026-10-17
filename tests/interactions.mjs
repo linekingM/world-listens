@@ -88,6 +88,10 @@ await test('HUD covers < 12% of the screen (desktop)', async () => {
 })
 
 await test('time dial: click → time, keyboard → +15min, sun/light follow', async () => {
+  // dial is collapsed by default — expand first
+  const toggle = await page.$('[data-testid=dial-toggle]')
+  if (toggle) await toggle.click()
+  await page.waitForSelector('.dial-svg', { timeout: 5000 })
   const box = await (await page.$('.dial-svg')).boundingBox()
   // viewBox is -8..408 wide; 18:00 at x=300
   await page.mouse.click(box.x + box.width * ((300 + 8) / 416), box.y + box.height / 2)
